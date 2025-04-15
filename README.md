@@ -5,7 +5,7 @@
 
 <ul>
   <li>Use <strong>/signup (http://localhost:8080/signup)</strong> with body in the form:</li>
-  <li><strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"YourPhoneNumber" (dont forget the + and contry code),"password": "YourPassword"}</strong>   </li>
+  <li><strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword"}</strong>   </li>
   <li>Retrns</li>
 </ul>
 
