@@ -1,21 +1,15 @@
-<header>AUTHENTICATION</header><centre/><br/><br/><u>
-<ul>
-<li>For signup use /signup (http://localhost:8080/signup) with body in the form:<br/>
-{ <br/>
-  "fullName": "YourFullName",<br/>
-  "email": "YourEmail",<br/>
-  "phoneNumber":"YourPhoneNumber (dont forget the + and contry code)",<br/>
-  "password": "YourPassword"<br/>
-}</li><br/>
+<center><h1>AUTHENTICATION</h1></center>
+<u>
 
-<li>For login use /login with body in the form:<br/>
-{<br/>
-  "email": "YourEmail",<br/>
-  "password": "YourPassword" <br/>
-}</li><br/>
+<h2>Signup</h2>
+<p>For signup use <strong>/signup (http://localhost:8080/signup)</strong> with body in the form:<br/>
+<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"YourPhoneNumber" (dont forget the + and contry code),"password": "YourPassword"}</strong> </p>
 
-<li>For GoogleAuth(signup & login) use /google-login with body in the form:<br/>
-{<br/>
- "request": "YourGoogleToken"<br/>
-}</li><br/>
-</ul>
+<h2>Login</h2>
+<p>For login use <strong>/login</strong>  with body in the form:<br/>
+<strong>{"email": "YourEmail","password": "YourPassword"}</strong> </p>
+
+<h2>Google Auth</h2>
+<p>For GoogleAuth(signup & login) use <strong>/google-login</strong>  with body in the form:<br/>
+<strong>{"request": "YourGoogleToken"}</strong></p>
+
