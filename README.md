@@ -1,3 +1,5 @@
+<header>AUTHENTICATION</header>
+<br/>
 For signup use /signup (http://localhost:8080/signup) with body in the form:
 { "fullName": "YourFullName","email": "YourEmail", "phoneNumber":"YourPhoneNumber (dont forget the + and contry code)","password": "YourPassword" }
 
