@@ -34,5 +34,6 @@
 <ul>
   <li>Use <strong>[POST] /google-login</strong>  with body in the form:</li>
   <li><strong>{"request": "YourGoogleToken"}</strong></li>
+  <li>Returns code 200, response { UId: UserUID, email : UserEmail }</li>
   <li>Returns something, try it, could not</li>
 <ul/>
