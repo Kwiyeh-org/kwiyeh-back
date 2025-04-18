@@ -46,6 +46,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                                     .setPhoneNumber(request.getPhoneNumber())
                                     );
                     mailService.sendSignupMail(request.getEmail(),request.getFullName());
+                    System.out.println("Signup of "+request.getEmail()+" successfull");
                     return ResponseEntity.ok("User created: " + userRecord.getUid());
                 } 
                 else {
@@ -53,6 +54,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
                 }
             } catch (FirebaseAuthException e1) {
+                System.out.println(e1.getErrorCode().toString());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e1.getMessage());
             }
     }
@@ -75,8 +77,10 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            System.out.println("Login of "+request.getEmail()+" successfull");
             return ResponseEntity.ok(response.getBody());
         } catch (HttpClientErrorException e) {
+            System.out.println(e.toString());
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         }
     }
@@ -94,12 +98,13 @@ public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
         /*UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid)
             .setDisplayName(decodedToken.getName());
         FirebaseAuth.getInstance().updateUser(updateRequest);*/
-        System.err.println("google login ok");
+        System.out.println("Google Login of "+userRecord.getUid()+" successfull");
         return ResponseEntity.ok(Map.of(
             "uid", userRecord.getUid(),
             "email", userRecord.getEmail()
         ));
     } catch (FirebaseAuthException e) {
+        System.out.println(e.getErrorCode().toString());
         return ResponseEntity.status(401).body("Unauthorized");
     }
 }
