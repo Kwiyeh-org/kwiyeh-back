@@ -12,14 +12,14 @@ public class BackApplication {
 
 	public static FirebaseAuth firebaseAuth;
 
-	private static void run (){
+	private static void runFirebase (){
 		FirebaseInitialization firebaseInitialization = new FirebaseInitialization();
 		FirebaseApp firebaseApp = firebaseInitialization.FireStoreInitialisation();
 		firebaseAuth = firebaseInitialization.firebaseAuth(firebaseApp);
 	}
 
 	public static void main(String[] args) {
-		run();
+		runFirebase();
 		SpringApplication.run(BackApplication.class, args);
 	}
 

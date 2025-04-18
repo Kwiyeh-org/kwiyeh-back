@@ -19,15 +19,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain (HttpSecurity httpSecurity) throws Exception{
         return httpSecurity
             .csrf(AbstractHttpConfigurer::disable) // enable for production
-            .formLogin(httpForm -> {
-                httpForm.loginPage("/login.html").permitAll();
-
-            })  // to redirect the login to a custom one
             .authorizeHttpRequests(registry ->{
                 registry.requestMatchers("/signup").permitAll();
                 registry.requestMatchers("/login").permitAll();
-                registry.requestMatchers("/login-page").permitAll();
-                registry.requestMatchers("/get").permitAll();
                 registry.anyRequest().authenticated();
             })
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class)

@@ -18,12 +18,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
+import com.kwiyeh.back.service.MailService;
 
 @RestController
 public class AuthController {
 
     @Value("${firebase.api.key}")
     private String firebaseApiKey;
+    private final MailService mailService = new MailService();;
 
     @PostMapping("/signup")
 public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
@@ -33,20 +35,23 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already in use");
     } catch (FirebaseAuthException e) {
         try {
-        if (e.getErrorCode().toString().equals("USER_NOT_FOUND")) {
-            // Email doesn't exist → create the user
-            UserRecord userRecord;
-                userRecord = FirebaseAuth.getInstance().createUser(
-                        new UserRecord.CreateRequest()
-                                .setEmail(request.getEmail())
-                                .setPassword(request.getPassword())
-                                .setDisplayName(request.getFullName())
-                                .setPhoneNumber(request.getPhoneNumber())
-                                );
-                return ResponseEntity.ok("User created: " + userRecord.getUid());
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-                            }
+            if (e.getErrorCode().toString().equals("NOT_FOUND")) {
+                // Email doesn't exist → create the user
+                UserRecord userRecord;
+                    userRecord = FirebaseAuth.getInstance().createUser(
+                            new UserRecord.CreateRequest()
+                                    .setEmail(request.getEmail())
+                                    .setPassword(request.getPassword())
+                                    .setDisplayName(request.getFullName())
+                                    .setPhoneNumber(request.getPhoneNumber())
+                                    );
+                    mailService.sendSignupMail(request.getEmail(),request.getFullName());
+                    return ResponseEntity.ok("User created: " + userRecord.getUid());
+                } 
+                else {
+                    System.out.println(e.getErrorCode().toString());
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+                }
             } catch (FirebaseAuthException e1) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e1.getMessage());
             }
@@ -55,7 +60,6 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        System.out.println("you are in login");
         String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseApiKey;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
