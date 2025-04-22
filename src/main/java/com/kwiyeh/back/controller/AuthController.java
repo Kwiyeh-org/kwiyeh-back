@@ -31,6 +31,7 @@ import com.kwiyeh.back.utils.MyAppFunctions;
 import com.kwiyeh.back.utils.PasswordResetRequest;
 import com.kwiyeh.back.utils.SignUpRequest;
 
+
 @RestController
 public class AuthController {
 
@@ -58,9 +59,9 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                                     .setPhoneNumber(request.getPhoneNumber())
                                     );
                     mailService.sendSignupMail(request.getEmail(),request.getFullName());
-                    System.out.println("Signup of "+request.getEmail()+" successfull");
+                    System.out.println("Signup of "+request.getEmail()+" successful");
                     return ResponseEntity.ok("User created: " + userRecord.getUid());
-                } 
+                }
                 else {
                     System.out.println(e.getErrorCode().toString());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
@@ -89,7 +90,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-            System.out.println("Login of "+request.getEmail()+" successfull");
+            System.out.println("Login of "+request.getEmail()+" successful");
             return ResponseEntity.ok(response.getBody());
         } catch (HttpClientErrorException e) {
             System.out.println(e.toString());
@@ -110,7 +111,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             /*UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid)
                 .setDisplayName(decodedToken.getName());
             FirebaseAuth.getInstance().updateUser(updateRequest);*/
-            System.out.println("Google Login of "+userRecord.getUid()+" successfull");
+            System.out.println("Google Login of "+userRecord.getUid()+" successful");
             return ResponseEntity.ok(Map.of(
                 "uid", userRecord.getUid(),
                 "email", userRecord.getEmail()
@@ -134,10 +135,8 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             mailService.sendForgetPasswordMail(email,userRecord.getDisplayName(),code);
             return ResponseEntity.ok("Reset password mail sent");
         } catch (FirebaseAuthException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email not registered");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }
@@ -158,10 +157,8 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
         } catch (FirebaseAuthException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email not registered");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }

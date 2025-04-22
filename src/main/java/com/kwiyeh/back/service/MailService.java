@@ -7,10 +7,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
-import lombok.Setter;
-
 @Service
-@Setter
 public final class MailService {
 
     JavaMailSenderImpl mailSenderImpl = new JavaMailSenderImpl();
@@ -50,7 +47,7 @@ public final class MailService {
 		    }
 		    catch (MailException ex) {
 			    System.err.println(ex.getMessage());
-		    } 
+		    }
     }
 
     public void sendForgetPasswordMail(String email, String receiverName, String forgetPasswordCode){
@@ -69,6 +66,22 @@ public final class MailService {
 		    }
 		    catch (MailException ex) {
 			    System.err.println(ex.getMessage());
-		    } 
+		    }
+    }
+
+    public JavaMailSenderImpl getMailSenderImpl() {
+        return mailSenderImpl;
+    }
+
+    public void setMailSenderImpl(JavaMailSenderImpl mailSenderImpl) {
+        this.mailSenderImpl = mailSenderImpl;
+    }
+
+    public Properties getProps() {
+        return props;
+    }
+
+    public void setProps(Properties props) {
+        this.props = props;
     }
 }

@@ -32,6 +32,8 @@
 set -euf
 [ "${MVNW_VERBOSE-}" != debug ] || set -x
 
+export MAVEN_OPTS="-Djps.track.ap.dependencies=false"
+
 # OS specific support.
 native_path() { printf %s\\n "$1"; }
 case "$(uname)" in
