@@ -39,7 +39,7 @@
   <li>Body :<strong>{"request": "YourGoogleToken"}</strong></li>
   <li>Returns code 200, response { UId: UserUID, email : UserEmail }</li>
   <li>Returns something, try it</li>
-<ul/>
+</ul>
 
 <h2>Password Reset</h2>
 
@@ -59,6 +59,5 @@
 }</li>
   <li>Returns code 200, response { Password reset done }</li>
   <li>Returns something, try it</li>
-  
-<ul/>
+</ul>
 
