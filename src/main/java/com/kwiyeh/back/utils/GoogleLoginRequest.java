@@ -1,11 +1,11 @@
-package com.kwiyeh.back.controller;
+package com.kwiyeh.back.utils;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-class GoogleLoginRequest {
+public class GoogleLoginRequest {
     private String token;
     // Getter and setter
 }

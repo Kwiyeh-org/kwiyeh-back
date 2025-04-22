@@ -1,6 +1,8 @@
 package com.kwiyeh.back.controller;
 
+import java.util.Calendar;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -8,8 +10,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -18,14 +22,22 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
+import com.kwiyeh.back.model.PasswordReset;
 import com.kwiyeh.back.service.MailService;
+import com.kwiyeh.back.service.UserService;
+import com.kwiyeh.back.utils.GoogleLoginRequest;
+import com.kwiyeh.back.utils.LoginRequest;
+import com.kwiyeh.back.utils.MyAppFunctions;
+import com.kwiyeh.back.utils.PasswordResetRequest;
+import com.kwiyeh.back.utils.SignUpRequest;
 
 @RestController
 public class AuthController {
 
     @Value("${firebase.api.key}")
     private String firebaseApiKey;
-    private final MailService mailService = new MailService();;
+    private final MailService mailService = new MailService();
+    private final UserService userService = new UserService();
 
     @PostMapping("/signup")
 public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
@@ -86,27 +98,72 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
     }
 
     @PostMapping("/google-login")
-public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
-    try {
-        FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(request.getToken());
-        String uid = decodedToken.getUid();
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
+        try {
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(request.getToken());
+            String uid = decodedToken.getUid();
 
-        // Check if user exists in Firebase (optional, since token verification implies existence)
-        UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
+            // Check if user exists in Firebase (optional, since token verification implies existence)
+            UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
 
-        // Optional: Update user info if needed (e.g., name)
-        /*UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid)
-            .setDisplayName(decodedToken.getName());
-        FirebaseAuth.getInstance().updateUser(updateRequest);*/
-        System.out.println("Google Login of "+userRecord.getUid()+" successfull");
-        return ResponseEntity.ok(Map.of(
-            "uid", userRecord.getUid(),
-            "email", userRecord.getEmail()
-        ));
-    } catch (FirebaseAuthException e) {
-        System.out.println(e.getErrorCode().toString());
-        return ResponseEntity.status(401).body("Unauthorized");
+            // Optional: Update user info if needed (e.g., name)
+            /*UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid)
+                .setDisplayName(decodedToken.getName());
+            FirebaseAuth.getInstance().updateUser(updateRequest);*/
+            System.out.println("Google Login of "+userRecord.getUid()+" successfull");
+            return ResponseEntity.ok(Map.of(
+                "uid", userRecord.getUid(),
+                "email", userRecord.getEmail()
+            ));
+        } catch (FirebaseAuthException e) {
+            System.out.println(e.getErrorCode().toString());
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
     }
-}
+
+    @GetMapping("/forgetPassword")
+    public ResponseEntity<?> forgetPasswordMail(@RequestParam String email) {
+        try {
+            //String link = FirebaseAuth.getInstance().generatePasswordResetLink(email);
+            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+            String code = MyAppFunctions.GenerateForgetPasswordCode();
+            PasswordReset passwordReset = new PasswordReset();
+            passwordReset.setForgetPasswordCode(code);
+            passwordReset.setCreatedAt(Calendar.getInstance().getTime());
+            userService.createPasswordReset(email,passwordReset);
+            mailService.sendForgetPasswordMail(email,userRecord.getDisplayName(),code);
+            return ResponseEntity.ok("check your mail");
+        } catch (FirebaseAuthException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email not registered");
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
+        }
+    }
+
+    @PostMapping("/resetPassword")
+    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest passwordResetReq) {
+        try {
+            PasswordReset expectedPasswordReset = userService.getPasswordReset(passwordResetReq.getEmail());
+            if(expectedPasswordReset == null)
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("code expired or already used");
+            if(expectedPasswordReset.getForgetPasswordCode().equals(passwordResetReq.getForgetPasswordCode()) ){
+                UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(passwordResetReq.getEmail());
+                UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
+                .setPassword(passwordResetReq.getPassword());
+                FirebaseAuth.getInstance().updateUser(updateRequest);
+                userService.deletePasswordReset(passwordResetReq.getEmail());
+                return ResponseEntity.ok("Password reset done");
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
+        } catch (FirebaseAuthException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email not registered");
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
+        }
+    }
 }
 

@@ -22,6 +22,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(registry ->{
                 registry.requestMatchers("/signup").permitAll();
                 registry.requestMatchers("/login").permitAll();
+                registry.requestMatchers("/forgetPassword").permitAll();
+                registry.requestMatchers("/resetPassword").permitAll();
                 registry.anyRequest().authenticated();
             })
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class)

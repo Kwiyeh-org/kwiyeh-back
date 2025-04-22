@@ -1,13 +1,11 @@
-package com.kwiyeh.back.controller;
+package com.kwiyeh.back.utils;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-class SignUpRequest {
-    private String fullName;
+public class LoginRequest {
     private String email;
-    private String phoneNumber;
     private String password;
 }

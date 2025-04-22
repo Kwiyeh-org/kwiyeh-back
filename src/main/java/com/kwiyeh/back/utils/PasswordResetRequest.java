@@ -1,11 +1,12 @@
-package com.kwiyeh.back.controller;
+package com.kwiyeh.back.utils;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-class LoginRequest {
+public class PasswordResetRequest{
     private String email;
+    private String forgetPasswordCode;
     private String password;
 }

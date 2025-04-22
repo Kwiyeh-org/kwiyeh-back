@@ -11,16 +11,20 @@ import lombok.Setter;
 
 @Service
 @Setter
-public class MailService {
+public final class MailService {
 
-    public void sendSignupMail(String email, String receiverName){
+    JavaMailSenderImpl mailSenderImpl = new JavaMailSenderImpl();
+    Properties props = mailSenderImpl.getJavaMailProperties();
+    public MailService(){
+        this.initialize();
+    }
 
-        JavaMailSenderImpl mailSenderImpl = new JavaMailSenderImpl();
+    public void initialize(){
         mailSenderImpl.setHost("smtp.gmail.com");
         mailSenderImpl.setPort(587);
         mailSenderImpl.setUsername("ttemtsa@gmail.com");
         mailSenderImpl.setPassword("xnfa pgav xbsc brvh");
-        Properties props = mailSenderImpl.getJavaMailProperties();
+
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -28,6 +32,9 @@ public class MailService {
         props.put("mail.smtp.connectiontimeout", "5000");
         props.put("mail.smtp.timeout", "3000");
         props.put("mail.smtp.writetimeout", "5000");
+    }
+
+    public void sendSignupMail(String email, String receiverName){
 
         SimpleMailMessage mailMsg = new SimpleMailMessage();
         mailMsg.setFrom("ttemtsa@gmail.com");
@@ -36,6 +43,25 @@ public class MailService {
         mailMsg.setText(
             "Dear " + receiverName
 				+ ", thank you for signing up to kwiyeh "
+        );
+
+        try {
+			    mailSenderImpl.send(mailMsg);
+		    }
+		    catch (MailException ex) {
+			    System.err.println(ex.getMessage());
+		    } 
+    }
+
+    public void sendForgetPasswordMail(String email, String receiverName, String forgetPasswordCode){
+
+        SimpleMailMessage mailMsg = new SimpleMailMessage();
+        mailMsg.setFrom("ttemtsa@gmail.com");
+        mailMsg.setSubject("Forget Password");
+        mailMsg.setTo(email);
+        mailMsg.setText(
+            "Dear " + receiverName
+				+ ", here password reset code "+ forgetPasswordCode
         );
 
         try {

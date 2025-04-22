@@ -1,14 +1,45 @@
 package com.kwiyeh.back.service;
 
+import java.util.concurrent.ExecutionException;
+
 import org.springframework.stereotype.Service;
 
-import lombok.Getter;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.WriteResult;
+import com.google.firebase.cloud.FirestoreClient;
+import com.kwiyeh.back.model.PasswordReset;
 
 @Service
-@Getter
 public class UserService{
 
-    private static final String DUPLICATE_ACCOUNT_ERROR = "EMAIL_EXISTS";
+    public String createPasswordReset(String email, PasswordReset passwordReset) throws InterruptedException, ExecutionException{
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        ApiFuture<WriteResult> writeResult = (ApiFuture<WriteResult>) dbFirestore.collection("PasswordReset").document(email).set(passwordReset);
+        return writeResult.get().getUpdateTime().toString();
+    }
+
+    public String deletePasswordReset(String email) throws InterruptedException, ExecutionException{
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        ApiFuture<WriteResult> writeResult = dbFirestore.collection("PasswordReset").document(email).delete();
+        return writeResult.get().getUpdateTime().toString();
+    }
+
+    public PasswordReset getPasswordReset(String email) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference documentReference = dbFirestore.collection("PasswordReset").document(email);
+        ApiFuture<DocumentSnapshot> future = documentReference.get();
+        DocumentSnapshot document = future.get();
+        PasswordReset passwordReset;
+        if (document.exists()){
+            passwordReset = document.toObject(PasswordReset.class);
+            return passwordReset;
+        }
+        return null;
+    }
+
 
     // don't mind this
 
