@@ -38,5 +38,26 @@
   <li>Parameters: </li>
   <li>Body :<strong>{"request": "YourGoogleToken"}</strong></li>
   <li>Returns code 200, response { UId: UserUID, email : UserEmail }</li>
-  <li>Returns something, try it, could not</li>
-<ul/>
+  <li>Returns something, try it</li>
+</ul>
+
+<h2>Password Reset</h2>
+
+<ul>
+  <li>Firstly, Use <strong>[GET] /forgetPassword</strong></li>
+  <li>Parameters: email = UserEmail</li>
+  <li>Body :</li>
+  <li>Returns code 200, response { check your mail }</li>
+  <li>Returns something, try it, could not</li><br/>
+
+  <li>Finaly, Use <strong>[POST] /resetPassword</strong></li>
+  <li>Parameters:</li>
+  <li>Body : {
+    "email":"UserEmail",
+    "forgetPasswordCode":"XXXX",
+    "password":"YourPassword"
+}</li>
+  <li>Returns code 200, response { Password reset done }</li>
+  <li>Returns something, try it</li>
+</ul>
+
