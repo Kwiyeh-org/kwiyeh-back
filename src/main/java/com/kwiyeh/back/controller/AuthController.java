@@ -132,7 +132,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             passwordReset.setCreatedAt(Calendar.getInstance().getTime());
             userService.createPasswordReset(email,passwordReset);
             mailService.sendForgetPasswordMail(email,userRecord.getDisplayName(),code);
-            return ResponseEntity.ok("check your mail");
+            return ResponseEntity.ok("Reset password mail sent");
         } catch (FirebaseAuthException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Email not registered");
