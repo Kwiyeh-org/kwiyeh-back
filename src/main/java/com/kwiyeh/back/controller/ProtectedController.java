@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 
 @RestController
@@ -17,8 +18,8 @@ public class ProtectedController {
         try {
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
             return ResponseEntity.ok("Hello, " + decodedToken.getEmail());
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body("Unauthorized");
+        } catch (FirebaseAuthException e) {
+            return ResponseEntity.status(e.getErrorCode().ordinal()).body(e.getMessage());
         }
     }
 }

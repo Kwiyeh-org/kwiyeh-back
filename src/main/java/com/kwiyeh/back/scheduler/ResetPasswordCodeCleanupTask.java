@@ -20,18 +20,18 @@ import com.kwiyeh.back.service.UserService;
 @Configuration
 @EnableScheduling
 public class ResetPasswordCodeCleanupTask {
-    
+
     private final UserService userService = new UserService();
     private static final int EXPIRATION_MINUTES = 10;
 
-    
+
     @Scheduled(fixedRate = 60000) // Run every minute
     public void deleteExpiredCodes() {
         Firestore dbFirestore = FirestoreClient.getFirestore();
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.MINUTE, -EXPIRATION_MINUTES);
         Date createdDateOfExpired = calendar.getTime();
-        
+
         ApiFuture<QuerySnapshot> querySnapshot = dbFirestore.collection("PasswordReset")
             .whereLessThan("createdAt", createdDateOfExpired)
             .get();

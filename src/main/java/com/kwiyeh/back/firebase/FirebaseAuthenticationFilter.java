@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 
 import jakarta.servlet.Filter;
@@ -34,7 +35,7 @@ public class FirebaseAuthenticationFilter implements Filter {
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails((HttpServletRequest) request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception e) {
+            } catch (FirebaseAuthException e) {
                 // You can log the error or handle it accordingly
                 System.err.println("Firebase token verification failed: " + e.getMessage());
             }

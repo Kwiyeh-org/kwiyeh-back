@@ -70,7 +70,7 @@ public class UserService{
     public String updateUser(AppUser user) throws InterruptedException, ExecutionException{
         Firestore dbFirestore = FirestoreClient.getFirestore();
         ApiFuture<WriteResult> collectionApiFuture = (ApiFuture<WriteResult>) dbFirestore.collection("User").document(user.getDocument_id()).set(user);
-        
+
         return collectionApiFuture.get().getUpdateTime().toString();
     }
 

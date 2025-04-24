@@ -26,7 +26,7 @@ public class UserController {
     public String updateUser(@RequestBody AppUser user) throws InterruptedException, ExecutionException{
         return userService.updateUser(user);
     }
-    
+
     @DeleteMapping ("/delete")
     public String deleteUser(@RequestParam String document_id){
         return userService.deleteUser(document_id);

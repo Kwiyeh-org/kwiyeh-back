@@ -2,7 +2,6 @@ package com.kwiyeh.back.utils;
 public class PasswordResetRequest{
 
     private String email;
-    private String forgetPasswordCode;
     private String password;
 
     public String getEmail() {
@@ -10,12 +9,6 @@ public class PasswordResetRequest{
     }
     public void setEmail(String email) {
         this.email = email;
-    }
-    public String getForgetPasswordCode() {
-        return forgetPasswordCode;
-    }
-    public void setForgetPasswordCode(String forgetPasswordCode) {
-        this.forgetPasswordCode = forgetPasswordCode;
     }
     public String getPassword() {
         return password;

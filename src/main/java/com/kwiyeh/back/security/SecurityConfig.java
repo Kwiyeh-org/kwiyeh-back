@@ -14,7 +14,7 @@ import com.kwiyeh.back.firebase.FirebaseAuthenticationFilter;
 @EnableWebSecurity
 public class SecurityConfig {
     private final FirebaseAuthenticationFilter firebaseAuthFilter = new FirebaseAuthenticationFilter();
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity httpSecurity) throws Exception{
         return httpSecurity

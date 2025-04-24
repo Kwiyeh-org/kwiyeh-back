@@ -30,6 +30,7 @@ import com.kwiyeh.back.utils.LoginRequest;
 import com.kwiyeh.back.utils.MyAppFunctions;
 import com.kwiyeh.back.utils.PasswordResetRequest;
 import com.kwiyeh.back.utils.SignUpRequest;
+import com.kwiyeh.back.utils.VerifyCodeRequest;
 
 
 @RestController
@@ -141,25 +142,32 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
         }
     }
 
+    @PostMapping("/verifyCode")
+    public ResponseEntity<?> verifyCode(@RequestBody VerifyCodeRequest verifyCodeReq) {
+        try {
+            PasswordReset expectedPasswordReset = userService.getPasswordReset(verifyCodeReq.getEmail());
+            if(expectedPasswordReset == null)
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("code expired or already used");
+            if(expectedPasswordReset.getForgetPasswordCode().equals(verifyCodeReq.getForgetPasswordCode()) ){
+                userService.deletePasswordReset(verifyCodeReq.getEmail());
+                return ResponseEntity.ok("Correct code");
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
+        } catch (InterruptedException | ExecutionException e) {
+            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
+        }
+    }
+
     @PostMapping("/resetPassword")
     public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest passwordResetReq) {
         try {
-            PasswordReset expectedPasswordReset = userService.getPasswordReset(passwordResetReq.getEmail());
-            if(expectedPasswordReset == null)
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("code expired or already used");
-            if(expectedPasswordReset.getForgetPasswordCode().equals(passwordResetReq.getForgetPasswordCode()) ){
-                UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(passwordResetReq.getEmail());
-                UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
-                .setPassword(passwordResetReq.getPassword());
-                FirebaseAuth.getInstance().updateUser(updateRequest);
-                userService.deletePasswordReset(passwordResetReq.getEmail());
-                return ResponseEntity.ok("Password reset done");
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
+            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(passwordResetReq.getEmail());
+            UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
+            .setPassword(passwordResetReq.getPassword());
+            FirebaseAuth.getInstance().updateUser(updateRequest);
+            return ResponseEntity.ok("Password reset done");
         } catch (FirebaseAuthException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (InterruptedException | ExecutionException e) {
-            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }
 }
