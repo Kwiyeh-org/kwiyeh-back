@@ -155,7 +155,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             if(expectedPasswordReset.getForgetPasswordCode().equals(verifyCodeReq.getForgetPasswordCode()) ){
                 userService.deletePasswordReset(verifyCodeReq.getEmail());
                 String token = JwtUtil.generateToken(verifyCodeReq.getEmail());
-                return ResponseEntity.ok(token);
+                return ResponseEntity.ok("\"passwordToken\": \""+token+"\"");
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
         } catch (InterruptedException | ExecutionException e) {
