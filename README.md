@@ -56,9 +56,9 @@
     "email":"UserEmail",
     "forgetPasswordCode":"XXXX"
   }</li>
-  <li>Returns code 200, response { check your mail }</li>
+  <li>Returns code 200, response { "passwordToken": "Token", "expiresIn": "600" }</li>
   <li>Returns something, try it, could not</li><br/>
-  
+
   <li>Finaly, Use <strong>[POST] /resetPassword</strong></li>
   <li>Parameters:</li>
   <li>Body : {
