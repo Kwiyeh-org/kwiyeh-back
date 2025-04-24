@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
@@ -26,11 +27,14 @@ import com.kwiyeh.back.model.PasswordReset;
 import com.kwiyeh.back.service.MailService;
 import com.kwiyeh.back.service.UserService;
 import com.kwiyeh.back.utils.GoogleLoginRequest;
+import com.kwiyeh.back.utils.JwtUtil;
 import com.kwiyeh.back.utils.LoginRequest;
 import com.kwiyeh.back.utils.MyAppFunctions;
 import com.kwiyeh.back.utils.PasswordResetRequest;
 import com.kwiyeh.back.utils.SignUpRequest;
 import com.kwiyeh.back.utils.VerifyCodeRequest;
+
+import io.jsonwebtoken.Claims;
 
 
 @RestController
@@ -150,7 +154,8 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("code expired or already used");
             if(expectedPasswordReset.getForgetPasswordCode().equals(verifyCodeReq.getForgetPasswordCode()) ){
                 userService.deletePasswordReset(verifyCodeReq.getEmail());
-                return ResponseEntity.ok("Correct code");
+                String token = JwtUtil.generateToken(verifyCodeReq.getEmail());
+                return ResponseEntity.ok(token);
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
         } catch (InterruptedException | ExecutionException e) {
@@ -159,15 +164,23 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
     }
 
     @PostMapping("/resetPassword")
-    public ResponseEntity<?> resetPassword(@RequestBody PasswordResetRequest passwordResetReq) {
+    public ResponseEntity<?> resetPassword(@RequestHeader("Authorization") String authHeader, @RequestBody PasswordResetRequest passwordResetReq) {
+        String idToken = authHeader.replace("Bearer ", "");
         try {
-            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(passwordResetReq.getEmail());
+            Claims decodedToken = JwtUtil.parseToken(idToken);
+            if (decodedToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+            }
+            if (decodedToken.getExpiration().getTime() < Calendar.getInstance().getTimeInMillis()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token expired");
+            }
+            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(decodedToken.getSubject());
             UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
             .setPassword(passwordResetReq.getPassword());
             FirebaseAuth.getInstance().updateUser(updateRequest);
             return ResponseEntity.ok("Password reset done");
         } catch (FirebaseAuthException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().ordinal()).body(e.getMessage());
         }
     }
 }

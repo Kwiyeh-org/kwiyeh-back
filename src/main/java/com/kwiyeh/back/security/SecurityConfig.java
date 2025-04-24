@@ -23,7 +23,7 @@ public class SecurityConfig {
                 registry.requestMatchers("/signup").permitAll();
                 registry.requestMatchers("/login").permitAll();
                 registry.requestMatchers("/forgetPassword").permitAll();
-                registry.requestMatchers("/resetPassword").permitAll();
+                registry.requestMatchers("/verifyCode").permitAll();
                 registry.anyRequest().authenticated();
             })
             .addFilterBefore(firebaseAuthFilter, UsernamePasswordAuthenticationFilter.class)

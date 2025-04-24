@@ -1,6 +1,7 @@
 package com.kwiyeh.back.firebase;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -10,7 +11,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.kwiyeh.back.utils.JwtUtil;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -18,6 +22,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class FirebaseAuthenticationFilter implements Filter {
 
@@ -36,8 +41,20 @@ public class FirebaseAuthenticationFilter implements Filter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails((HttpServletRequest) request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (FirebaseAuthException e) {
-                // You can log the error or handle it accordingly
-                System.err.println("Firebase token verification failed: " + e.getMessage());
+                try {
+                    Claims claims = JwtUtil.parseToken(token);
+                    String username = claims.getSubject();
+
+                    // Create authentication object
+                    UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+
+                    // Set authentication in security context
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                } catch (JwtException e1) {
+                    ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                }
             }
         }
 
