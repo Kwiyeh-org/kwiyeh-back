@@ -50,12 +50,20 @@
   <li>Returns code 200, response { check your mail }</li>
   <li>Returns something, try it, could not</li><br/>
 
+  <li>Then, Use <strong>[Post] /verifyCode</strong></li>
+  <li>Parameters:
+  <li>Body : {
+    "email":"UserEmail",
+    "forgetPasswordCode":"XXXX"
+  }</li>
+  <li>Returns code 200, response { check your mail }</li>
+  <li>Returns something, try it, could not</li><br/>
+  
   <li>Finaly, Use <strong>[POST] /resetPassword</strong></li>
   <li>Parameters:</li>
   <li>Body : {
     "email":"UserEmail",
-    "forgetPasswordCode":"XXXX",
-    "password":"YourPassword"
+    "password":"NewPassword"
 }</li>
   <li>Returns code 200, response { Password reset done }</li>
   <li>Returns something, try it</li>
