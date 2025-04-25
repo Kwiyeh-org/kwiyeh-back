@@ -130,7 +130,6 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
     @GetMapping("/forgetPassword")
     public ResponseEntity<?> forgetPasswordMail(@RequestParam String email) {
         try {
-            //String link = FirebaseAuth.getInstance().generatePasswordResetLink(email);
             UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
             String code = MyAppFunctions.GenerateForgetPasswordCode();
             PasswordReset passwordReset = new PasswordReset();
@@ -138,10 +137,13 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             passwordReset.setCreatedAt(Calendar.getInstance().getTime());
             userService.createPasswordReset(email,passwordReset);
             mailService.sendForgetPasswordMail(email,userRecord.getDisplayName(),code);
+            System.out.println("Forget password mail sent to "+email);
             return ResponseEntity.ok("Reset password mail sent");
         } catch (FirebaseAuthException e) {
+            System.out.println(e.getErrorCode().toString());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (InterruptedException | ExecutionException e) {
+            System.out.println(e.toString());
             return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }
@@ -155,10 +157,12 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
             if(expectedPasswordReset.getForgetPasswordCode().equals(verifyCodeReq.getForgetPasswordCode()) ){
                 userService.deletePasswordReset(verifyCodeReq.getEmail());
                 String token = JwtUtil.generateToken(verifyCodeReq.getEmail());
-                return ResponseEntity.ok("\"passwordToken\": \""+token+"\"");
+                System.out.println("Token generated for "+verifyCodeReq.getEmail());
+                return ResponseEntity.ok("\"passwordToken\": \""+token+"\", \"expiresIn\": \"600\"");
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
         } catch (InterruptedException | ExecutionException e) {
+            System.out.println(e.toString());
             return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }
@@ -169,17 +173,21 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
         try {
             Claims decodedToken = JwtUtil.parseToken(idToken);
             if (decodedToken == null) {
+                System.out.println("Invalid token");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
             }
             if (decodedToken.getExpiration().getTime() < Calendar.getInstance().getTimeInMillis()) {
+                System.out.println("Token expired");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token expired");
             }
             UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(decodedToken.getSubject());
             UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(userRecord.getUid())
             .setPassword(passwordResetReq.getPassword());
             FirebaseAuth.getInstance().updateUser(updateRequest);
+            System.out.println("Password reset for "+decodedToken.getSubject()+" successful");
             return ResponseEntity.ok("Password reset done");
         } catch (FirebaseAuthException e) {
+            System.out.println(e.getErrorCode().toString());
             return ResponseEntity.status(e.getErrorCode().ordinal()).body(e.getMessage());
         }
     }
