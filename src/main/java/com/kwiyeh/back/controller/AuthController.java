@@ -158,7 +158,7 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                 userService.deletePasswordReset(verifyCodeReq.getEmail());
                 String token = JwtUtil.generateToken(verifyCodeReq.getEmail());
                 System.out.println("Token generated for "+verifyCodeReq.getEmail());
-                return ResponseEntity.ok("\"passwordToken\": \""+token+"\", \"expiresIn\": \"600\"");
+                return ResponseEntity.ok("{\"passwordToken\": \""+token+"\", \"expiresIn\": \"600\"}");
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong code");
         } catch (InterruptedException | ExecutionException e) {
