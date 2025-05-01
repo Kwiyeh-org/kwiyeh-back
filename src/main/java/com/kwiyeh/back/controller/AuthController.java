@@ -46,7 +46,7 @@ public class AuthController {
     private final UserService userService = new UserService();
 
     @PostMapping("/signup")
-public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
+public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
     try {
         // Check if email already exists in Firebase
         FirebaseAuth.getInstance().getUserByEmail(request.getEmail());
@@ -65,7 +65,10 @@ public ResponseEntity<String> signUp(@RequestBody SignUpRequest request) {
                                     );
                     mailService.sendSignupMail(request.getEmail(),request.getFullName());
                     System.out.println("Signup of "+request.getEmail()+" successful");
-                    return ResponseEntity.ok("User created: " + userRecord.getUid());
+                    LoginRequest loginRequest = new LoginRequest();
+                    loginRequest.setEmail(userRecord.getEmail());
+                    loginRequest.setPassword(request.getPassword());
+                    return login(loginRequest);
                 }
                 else {
                     System.out.println(e.getErrorCode().toString());

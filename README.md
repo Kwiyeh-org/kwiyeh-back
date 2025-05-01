@@ -7,7 +7,16 @@
   <li>Use <strong>[POST] /signup (http://localhost:8080/signup)</strong></li>
   <li>Parameters: </li>
   <li>Body :<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword"}</strong>   </li>
-  <li>Returns code 200, response { User created: UserUID }</li>
+  <li>Returns Returns code 200,response {
+  "kind": "identitytoolkit#VerifyPasswordResponse",
+  "localId": "UserUid",
+  "email": "UserEmail",
+  "displayName": "UserName",
+  "idToken":"IdToken",
+  "registered": true,
+  "refreshToken": "RefreshToken",
+  "expiresIn": "3600"
+  }</li>
   <li>Returns code 409, response { Email already in use }</li>
   <li>Returns something, try it</li>
 </ul>
@@ -27,7 +36,7 @@
   "registered": true,
   "refreshToken": "RefreshToken",
   "expiresIn": "3600"
-}</li>
+  }</li>
   <li>Returns something, try it</li>
 </ul>
 
