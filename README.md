@@ -79,3 +79,21 @@
   <li>Returns something, try it</li>
 </ul>
 
+<center><h1>IN APP Requests</h1></center>
+<p>There request require Authentication. To do so, add the header <br/><strong>Header: Authorization = Bearer YourToken<strong></p>
+
+<h2>Get User Info</h2>
+
+<ul>
+  <li>Use <strong>[GET] /getUserInfo</strong></li>
+  <li>Parameters: uid = UserUid </li>
+  <li>Body : </li>
+  <li>Returns Returns code 200,response {
+  "uid": "UserUid",
+  "email": "UserEmail",
+  "fullName": "UserName",
+  "phoneNumber": "UserPhoneNumber",
+  "type": "UserType" (client, talent or admin)
+  }</li>
+  <li>Returns something, try it</li>
+</ul>
