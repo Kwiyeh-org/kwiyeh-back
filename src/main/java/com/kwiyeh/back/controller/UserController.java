@@ -1,34 +1,27 @@
 package com.kwiyeh.back.controller;
 
+import java.util.concurrent.ExecutionException;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.service.UserService;
 
 @RestController
 public class UserController {
-    public UserService userService;
+    public UserService userService= new UserService();
 
-    public UserController(UserService userService){
-        this.userService = userService;
+    @GetMapping("/getUserInfo")
+    public ResponseEntity<String> getUserInfo(@RequestParam String uid) {
+        try{
+            AppUser user = userService.getUserInfo(uid);
+            return ResponseEntity.ok(user.toJson());
+        }
+        catch (InterruptedException | ExecutionException e){
+            return ResponseEntity.status(500).body("Error retrieving user information: " + e.getMessage());
+        }
     }
-
-    /*@PostMapping ("/create")
-    public String createUser(@RequestBody AppUser user) throws InterruptedException, ExecutionException{
-        return userService.createUser(user);
-    }
-
-    @GetMapping ("/get")
-    public AppUser getUser(@RequestParam String document_id) throws InterruptedException, ExecutionException{
-        return userService.getUser(document_id);
-    }
-
-    @PutMapping ("/update")
-    public String updateUser(@RequestBody AppUser user) throws InterruptedException, ExecutionException{
-        return userService.updateUser(user);
-    }
-
-    @DeleteMapping ("/delete")
-    public String deleteUser(@RequestParam String document_id){
-        return userService.deleteUser(document_id);
-    }*/
 }

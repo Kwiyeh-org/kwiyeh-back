@@ -5,6 +5,7 @@ public class SignUpRequest {
     private String email;
     private String phoneNumber;
     private String password;
+    private String type;
 
     public String getFullName() {
         return fullName;
@@ -22,6 +23,12 @@ public class SignUpRequest {
         return password;
     }
 
+    public String getType() {
+        return type;
+    }
+
+
+
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
@@ -36,6 +43,10 @@ public class SignUpRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
 }

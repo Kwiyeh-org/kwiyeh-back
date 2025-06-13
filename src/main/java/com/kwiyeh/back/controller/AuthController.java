@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
+import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.model.PasswordReset;
 import com.kwiyeh.back.service.MailService;
 import com.kwiyeh.back.service.UserService;
@@ -64,6 +65,14 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                                     .setPhoneNumber(request.getPhoneNumber())
                                     );
                     mailService.sendSignupMail(request.getEmail(),request.getFullName());
+                    AppUser user = new AppUser(
+                            userRecord.getUid(),
+                            request.getFullName(),
+                            request.getEmail(),
+                            request.getPhoneNumber(),
+                            request.getType()
+                    );
+                    userService.addUserInfo(user);
                     System.out.println("Signup of "+request.getEmail()+" successful");
                     LoginRequest loginRequest = new LoginRequest();
                     loginRequest.setEmail(userRecord.getEmail());
@@ -77,7 +86,10 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
             } catch (FirebaseAuthException e1) {
                 System.out.println(e1.getErrorCode().toString());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e1.getMessage());
-            }
+            }catch (InterruptedException | ExecutionException e1) {
+            System.out.println(e.toString());
+            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
+        }
     }
 }
 

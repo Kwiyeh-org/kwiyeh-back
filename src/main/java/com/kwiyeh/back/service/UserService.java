@@ -10,6 +10,7 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.cloud.FirestoreClient;
+import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.model.PasswordReset;
 
 @Service
@@ -40,6 +41,24 @@ public class UserService{
         return null;
     }
 
+    public String addUserInfo(AppUser user) throws InterruptedException, ExecutionException{
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        ApiFuture<WriteResult> writeResult = (ApiFuture<WriteResult>) dbFirestore.collection("userInfo").document(user.getUid()).set(user);
+        return writeResult.get().getUpdateTime().toString();
+    }
+
+    public AppUser getUserInfo(String uid) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference documentReference = dbFirestore.collection("userInfo").document(uid);
+        ApiFuture<DocumentSnapshot> future = documentReference.get();
+        DocumentSnapshot document = future.get();
+        AppUser user;
+        if (document.exists()){
+            user = document.toObject(AppUser.class);
+            return user;
+        }
+        return null;
+    }
 
     // don't mind this
 
