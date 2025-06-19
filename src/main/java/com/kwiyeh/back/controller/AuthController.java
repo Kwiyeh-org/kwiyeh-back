@@ -206,5 +206,6 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
             return ResponseEntity.status(e.getErrorCode().ordinal()).body(e.getMessage());
         }
     }
+
 }
 
