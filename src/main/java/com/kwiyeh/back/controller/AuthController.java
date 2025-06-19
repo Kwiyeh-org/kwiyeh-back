@@ -67,8 +67,8 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                     mailService.sendSignupMail(request.getEmail(),request.getFullName());
                     AppUser user = new AppUser(
                             userRecord.getUid(),
-                            request.getFullName(),
                             request.getEmail(),
+                            request.getFullName(),
                             request.getPhoneNumber(),
                             request.getType()
                     );
