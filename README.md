@@ -88,7 +88,7 @@
   <li>Use <strong>[GET] /getUserInfo</strong></li>
   <li>Parameters: uid = UserUid </li>
   <li>Body : </li>
-  <li>Returns Returns code 200,response {
+  <li>Returns code 200,response {
   "uid": "UserUid",
   "email": "UserEmail",
   "fullName": "UserName",
@@ -96,4 +96,84 @@
   "type": "UserType" (client, talent or admin)
   }</li>
   <li>Returns something, try it</li>
+</ul>
+
+<h2>Delete Account</h2>
+
+<ul>
+  <li>Use <strong>[DELETE] /deleteAccount</strong></li>
+  <li>Parameters:</li>
+  <li>Body : </li>
+  <li>Returns Returns code 200,response {Account deleted successfully}</li>
+  <li>Returns something, try it</li>
+</ul>
+
+<h2>Update User Info</h2>
+
+<ul>
+  <li>Use <strong>[POST] /updateUserInfo</strong></li>
+  <li>Parameters:</li>
+  For Clients <br>
+  Body : {
+    "uid":"UserUID",
+    "email":"UserEmail",
+    "fullName":"FullName",
+    "password":"NewPassword",
+    "phoneNumber": "UserPhoneNumber",
+    "type": "UserType" (client, talent or admin),
+    "clientImageUrl": "ClientImageUrl"
+  }<br>
+  For Talents <br>
+  Body : {
+    "uid":"UserUID",
+    "email":"UserEmail",
+    "fullName":"FullName",
+    "password":"NewPassword"
+    "phoneNumber": "UserPhoneNumber",
+    "type": "UserType" (client, talent or admin),
+    "talentName": "TalentName",
+    "talentDescription": "TalentDescription",
+    "talentCategory": "TalentCategory",
+    "talentImageUrl": "ClientImageUrl",
+    "pricing": "pricing",
+    "availability":"availability"
+  }</li>
+  <li>Returns Returns code 200,response {User information updated successfully }</li>
+  <li>Returns something, try it</li>
+</ul>
+
+<h2>Get Talents</h2>
+
+<ul>
+  <li>Use <strong>[GET] /getTalents</strong></li>
+  <li>Parameters: uid = UserUid</li>
+  <li>Body : </li>
+  <li>Returns Returns code 200,response {No talents found}</li>
+  <li>Returns Returns code 200,response {
+    [
+      {
+        "uid":"UserUID",
+        "email":"UserEmail",
+        "fullName":"FullName",
+        "password":"NewPassword"
+        "phoneNumber": "UserPhoneNumber",
+        "type": "UserType" (client, talent or admin),
+        "talentName": "TalentName",
+        "talentDescription": "TalentDescription",
+        "talentCategory": "TalentCategory",
+        "talentImageUrl": "TalentImageUrl",
+        "pricing": "pricing",
+        "availability":"availability"
+      },
+      ...
+    ]
+    }</li>
+  <li>Returns something, try it</li>
+</ul>
+
+<h2>Note</h2>
+
+<ul>
+  <li>Categories should be saved in the form "category1,category2,..."</li>
+  <li>Rating is a real number between 1 and 5</li>
 </ul>

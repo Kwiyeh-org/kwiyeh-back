@@ -14,6 +14,8 @@ import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.cloud.FirestoreClient;
 import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.model.PasswordReset;
+import com.kwiyeh.back.model.UserClient;
+import com.kwiyeh.back.model.UserTalent;
 import com.kwiyeh.back.utils.TalentInfo;
 
 @Service
@@ -50,14 +52,27 @@ public class UserService{
         return writeResult.get().getUpdateTime().toString();
     }
 
-    public AppUser getUserInfo(String uid) throws InterruptedException, ExecutionException {
+    public UserClient getClientInfo(String uid) throws InterruptedException, ExecutionException {
         Firestore dbFirestore = FirestoreClient.getFirestore();
         DocumentReference documentReference = dbFirestore.collection("userInfo").document(uid);
         ApiFuture<DocumentSnapshot> future = documentReference.get();
         DocumentSnapshot document = future.get();
-        AppUser user;
+        UserClient user;
         if (document.exists()){
-            user = document.toObject(AppUser.class);
+            user = document.toObject(UserClient.class);
+            return user;
+        }
+        return null;
+    }
+
+     public UserTalent getTalentInfo(String uid) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference documentReference = dbFirestore.collection("userInfo").document(uid);
+        ApiFuture<DocumentSnapshot> future = documentReference.get();
+        DocumentSnapshot document = future.get();
+        UserTalent user;
+        if (document.exists()){
+            user = document.toObject(UserTalent.class);
             return user;
         }
         return null;
@@ -71,7 +86,7 @@ public class UserService{
 
     public List<TalentInfo> getTalents() throws InterruptedException, ExecutionException {
         Firestore dbFirestore = FirestoreClient.getFirestore();
-        ApiFuture<QuerySnapshot> querySnapshot = (ApiFuture<QuerySnapshot>) dbFirestore.collection("PasswordReset")
+        ApiFuture<QuerySnapshot> querySnapshot = (ApiFuture<QuerySnapshot>) dbFirestore.collection("userInfo")
         .select("uid", "email", "fullName", "phoneNumber", "type")
         .whereEqualTo("type", "talent")
         .get();

@@ -4,21 +4,40 @@ public class UserTalent extends AppUser{
     private String talentName;
     private String talentDescription;
     private String talentCategory;
-    private String location;
     private String talentImageUrl;
+    private String pricing;
+    private String availability;
+    private String rating;
 
     public UserTalent(String uid, String email, String fullName, String phoneNumber, String type,
-                      String talentName, String talentDescription, String talentCategory, String talentImageUrl, String location) {
+                      String talentName, String talentDescription, String talentCategory, String talentImageUrl, String location, String pricing, String availability) {
         super(uid, email, fullName, phoneNumber, type);
         this.talentName = talentName;
         this.talentDescription = talentDescription;
         this.talentCategory = talentCategory;
         this.talentImageUrl = talentImageUrl;
-        this.location = location;
+        this.pricing = pricing;
+        this.availability = availability;
     }
 
     public UserTalent() {
         // Default constructor for JPA
+    }
+
+    public String toJson() {
+        return "{" +
+                "\"uid\":\"" + getUid() + "\"," +
+                "\"email\":\"" + getEmail() + "\"," +
+                "\"fullName\":\"" + getFullName() + "\"," +
+                "\"phoneNumber\":\"" + getPhoneNumber() + "\"," +
+                "\"type\":\"" + getType() + "\"," +
+                "\"talentName\":\"" + talentName + "\"," +
+                "\"talentDescription\":\"" + talentDescription + "\"," +
+                "\"talentCategory\":\"" + talentCategory + "\"," +
+                "\"talentImageUrl\":\"" + talentImageUrl + "\"," +
+                "\"pricing\":\"" + pricing + "\"," +
+                "\"availability\":\"" + availability + "\"" +
+                "}";
     }
 
     public String getTalentName() {
@@ -53,10 +72,22 @@ public class UserTalent extends AppUser{
         this.talentImageUrl = talentImageUrl;
     }
 
-    public String getLocation() {
-        return location;
+    public String getPricing() {
+        return pricing;
     }
-    public void setLocation(String location) {
-        this.location = location;
+    public void setPricing(String pricing) {
+        this.pricing = pricing;
+    }
+    public String getAvailability() {
+        return availability;
+    }
+    public void setAvailability(String availability) {
+        this.availability = availability;
+    }
+    public String getRating() {
+        return rating;
+    }
+    public void setRating(String rating) {
+        this.rating = rating;
     }
 }

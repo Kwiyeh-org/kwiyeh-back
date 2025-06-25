@@ -10,6 +10,7 @@ public class AppUser {
     private String fullName;
     private String phoneNumber;
     private String type;
+    private String location;
 
     public AppUser( String uid,String email, String fullName, String phoneNumber, String type) {
         this.uid = uid;
@@ -41,6 +42,9 @@ public class AppUser {
     public String getType() {
         return type;
     }
+    public String getLocation() {
+        return location;
+    }
 
 
     public void setFullName(String fullName) {
@@ -55,14 +59,7 @@ public class AppUser {
     public void setType(String type) {
         this.type = type;
     }
-
-    public String toJson() {
-        return "{" +
-                "\"uid\":\"" + uid + "\"," +
-                "\"email\":\"" + email + "\"," +
-                "\"fullName\":\"" + fullName + "\"," +
-                "\"phoneNumber\":\"" + phoneNumber + "\"," +
-                "\"type\":\"" + type + "\"" +
-                "}";
+    public void setLocation(String location) {
+        this.location = location;
     }
 }
