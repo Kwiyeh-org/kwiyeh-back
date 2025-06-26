@@ -45,7 +45,7 @@
 <ul>
   <li>Use <strong>[POST] /google-login</strong></li>
   <li>Parameters: </li>
-  <li>Body :<strong>{"request": "YourGoogleToken","role":"UserRole"}</strong></li>
+  <li>Body :<strong>{"token": "YourGoogleToken","role":"UserRole"}</strong></li>
   <li>Returns code 200, response {Google login of UserEmail successful}</li>
   <li>Returns something, try it</li>
 </ul>
