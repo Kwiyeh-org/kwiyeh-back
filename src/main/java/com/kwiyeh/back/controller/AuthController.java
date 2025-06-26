@@ -25,6 +25,8 @@ import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.model.PasswordReset;
+import com.kwiyeh.back.model.UserClient;
+import com.kwiyeh.back.model.UserTalent;
 import com.kwiyeh.back.service.MailService;
 import com.kwiyeh.back.service.UserService;
 import com.kwiyeh.back.utils.GoogleLoginRequest;
@@ -70,7 +72,7 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                             request.getEmail(),
                             request.getFullName(),
                             request.getPhoneNumber(),
-                            request.getType()
+                            request.getRole()
                     );
                     userService.addUserInfo(user);
                     System.out.println("Signup of "+request.getEmail()+" successful");
@@ -126,19 +128,42 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
 
             // Check if user exists in Firebase (optional, since token verification implies existence)
             UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
-
-            // Optional: Update user info if needed (e.g., name)
-            /*UserRecord.UpdateRequest updateRequest = new UserRecord.UpdateRequest(uid)
-                .setDisplayName(decodedToken.getName());
-            FirebaseAuth.getInstance().updateUser(updateRequest);*/
-            System.out.println("Google Login of "+userRecord.getUid()+" successful");
-            return ResponseEntity.ok(Map.of(
-                "uid", userRecord.getUid(),
-                "email", userRecord.getEmail()
-            ));
+            if("talent".equals(request.getRole())){
+                UserTalent user = userService.getTalentInfo(uid);
+                if (user == null){
+                    mailService.sendSignupMail(userRecord.getEmail(),userRecord.getDisplayName());
+                    AppUser user2 = new AppUser(
+                        userRecord.getUid(),
+                        userRecord.getEmail(),
+                        userRecord.getDisplayName(),
+                        userRecord.getPhoneNumber(),
+                        request.getRole()
+                    );
+                    userService.addUserInfo(user2);
+                }
+            }
+            else{
+                UserClient user = userService.getClientInfo(uid);
+                if (user == null){
+                    mailService.sendSignupMail(userRecord.getEmail(),userRecord.getDisplayName());
+                    AppUser user2 = new AppUser(
+                        userRecord.getUid(),
+                        userRecord.getEmail(),
+                        userRecord.getDisplayName(),
+                        userRecord.getPhoneNumber(),
+                        request.getRole()
+                    );
+                    userService.addUserInfo(user2);
+                }
+            }
+            System.out.println("Google login of "+userRecord.getEmail()+" successful");
+            return ResponseEntity.ok("Google login of "+userRecord.getEmail()+" successful");
         } catch (FirebaseAuthException e) {
             System.out.println(e.getErrorCode().toString());
             return ResponseEntity.status(401).body("Unauthorized");
+        }catch (InterruptedException | ExecutionException e1) {
+            System.out.println(e1.toString());
+            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
         }
     }
 

@@ -6,7 +6,7 @@
 <ul>
   <li>Use <strong>[POST] /signup (http://localhost:8080/signup)</strong></li>
   <li>Parameters: </li>
-  <li>Body :<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword","type":"UserType"}</strong>   </li>
+  <li>Body :<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword","role":"UserRole"}</strong>   </li>
   <li>Returns Returns code 200,response {
   "kind": "identitytoolkit#VerifyPasswordResponse",
   "localId": "UserUid",
@@ -45,7 +45,7 @@
 <ul>
   <li>Use <strong>[POST] /google-login</strong></li>
   <li>Parameters: </li>
-  <li>Body :<strong>{"request": "YourGoogleToken","type":"UserType"}</strong></li>
+  <li>Body :<strong>{"request": "YourGoogleToken","role":"UserRole"}</strong></li>
   <li>Returns code 200, response {Google login of UserEmail successful}</li>
   <li>Returns something, try it</li>
 </ul>
@@ -93,7 +93,7 @@
   "email": "UserEmail",
   "fullName": "UserName",
   "phoneNumber": "UserPhoneNumber",
-  "type": "UserType" (client, talent or admin)
+  "role": "UserRole" (client, talent or admin)
   }</li>
   <li>Returns something, try it</li>
 </ul>
@@ -120,7 +120,7 @@
     "fullName":"FullName",
     "password":"NewPassword",
     "phoneNumber": "UserPhoneNumber",
-    "type": "UserType" (client, talent or admin),
+    "role": "UserRole" (client, talent or admin),
     "clientImageUrl": "ClientImageUrl"
   }<br>
   For Talents <br>
@@ -130,7 +130,7 @@
     "fullName":"FullName",
     "password":"NewPassword"
     "phoneNumber": "UserPhoneNumber",
-    "type": "UserType" (client, talent or admin),
+    "role": "UserRole" (client, talent or admin),
     "talentName": "TalentName",
     "talentDescription": "TalentDescription",
     "talentCategory": "TalentCategory",
@@ -157,7 +157,7 @@
         "fullName":"FullName",
         "password":"NewPassword"
         "phoneNumber": "UserPhoneNumber",
-        "type": "UserType" (client, talent or admin),
+        "role": "UserRole" (client, talent or admin),
         "talentName": "TalentName",
         "talentDescription": "TalentDescription",
         "talentCategory": "TalentCategory",

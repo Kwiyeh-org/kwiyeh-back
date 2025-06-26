@@ -9,9 +9,9 @@ public class UserTalent extends AppUser{
     private String availability;
     private String rating;
 
-    public UserTalent(String uid, String email, String fullName, String phoneNumber, String type,
+    public UserTalent(String uid, String email, String fullName, String phoneNumber, String role,
                       String talentName, String talentDescription, String talentCategory, String talentImageUrl, String location, String pricing, String availability) {
-        super(uid, email, fullName, phoneNumber, type);
+        super(uid, email, fullName, phoneNumber, role);
         this.talentName = talentName;
         this.talentDescription = talentDescription;
         this.talentCategory = talentCategory;
@@ -30,7 +30,7 @@ public class UserTalent extends AppUser{
                 "\"email\":\"" + getEmail() + "\"," +
                 "\"fullName\":\"" + getFullName() + "\"," +
                 "\"phoneNumber\":\"" + getPhoneNumber() + "\"," +
-                "\"type\":\"" + getType() + "\"," +
+                "\"role\":\"" + getRole() + "\"," +
                 "\"talentName\":\"" + talentName + "\"," +
                 "\"talentDescription\":\"" + talentDescription + "\"," +
                 "\"talentCategory\":\"" + talentCategory + "\"," +

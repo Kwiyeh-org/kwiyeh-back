@@ -5,7 +5,7 @@ public class SignUpRequest {
     private String email;
     private String phoneNumber;
     private String password;
-    private String type;
+    private String role;
 
     public String getFullName() {
         return fullName;
@@ -23,8 +23,8 @@ public class SignUpRequest {
         return password;
     }
 
-    public String getType() {
-        return type;
+    public String getRole() {
+        return role;
     }
 
 
@@ -45,8 +45,8 @@ public class SignUpRequest {
         this.password = password;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setRole(String role) {
+        this.role = role;
     }
 
 }

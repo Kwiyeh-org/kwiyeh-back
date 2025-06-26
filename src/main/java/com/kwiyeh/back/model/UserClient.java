@@ -3,9 +3,9 @@ package com.kwiyeh.back.model;
 public class UserClient extends AppUser {
     private String clientImageUrl;
 
-    public UserClient(String uid, String email, String fullName, String phoneNumber, String type,
+    public UserClient(String uid, String email, String fullName, String phoneNumber, String role,
                       String clientName, String clientDescription, String clientCategory, String clientImageUrl, String location) {
-        super(uid, email, fullName, phoneNumber, type);
+        super(uid, email, fullName, phoneNumber, role);
         this.clientImageUrl = clientImageUrl;
     }
 
@@ -19,7 +19,7 @@ public class UserClient extends AppUser {
                 "\"email\":\"" + getEmail() + "\"," +
                 "\"fullName\":\"" + getFullName() + "\"," +
                 "\"phoneNumber\":\"" + getPhoneNumber() + "\"," +
-                "\"type\":\"" + getType() + "\"," +
+                "\"role\":\"" + getRole() + "\"," +
                 "\"clientImageUrl\":\"" + clientImageUrl + "\"" +
                 "}";
     }

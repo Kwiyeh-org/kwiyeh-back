@@ -2,7 +2,7 @@ package com.kwiyeh.back.utils;
 
 public class GoogleLoginRequest {
     private String token;
-    private String type;
+    private String role;
 
     public String getToken() {
         return token;
@@ -12,11 +12,11 @@ public class GoogleLoginRequest {
         this.token = token;
     }
 
-    public String getType() {
-        return type;
+    public String getRole() {
+        return role;
     }
-    public void setType(String type) {
-        this.type = type;
+    public void setRole(String role) {
+        this.role = role;
     }
 }
 

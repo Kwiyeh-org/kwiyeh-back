@@ -9,15 +9,15 @@ public class AppUser {
     private String email;
     private String fullName;
     private String phoneNumber;
-    private String type;
+    private String role;
     private String location;
 
-    public AppUser( String uid,String email, String fullName, String phoneNumber, String type) {
+    public AppUser( String uid,String email, String fullName, String phoneNumber, String role) {
         this.uid = uid;
         this.email = email;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
-        this.type = type;
+        this.role = role;
     }
 
     public AppUser() {
@@ -39,8 +39,8 @@ public class AppUser {
     public String getFullName() {
         return fullName;
     }
-    public String getType() {
-        return type;
+    public String getRole() {
+        return role;
     }
     public String getLocation() {
         return location;
@@ -56,8 +56,8 @@ public class AppUser {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
-    public void setType(String type) {
-        this.type = type;
+    public void setRole(String role) {
+        this.role = role;
     }
     public void setLocation(String location) {
         this.location = location;
