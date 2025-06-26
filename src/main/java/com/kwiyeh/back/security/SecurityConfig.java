@@ -30,6 +30,7 @@ public class SecurityConfig {
                 registry.requestMatchers("/login").permitAll();
                 registry.requestMatchers("/forgetPassword").permitAll();
                 registry.requestMatchers("/verifyCode").permitAll();
+                registry.requestMatchers("/google-login").permitAll();
                 registry.anyRequest().authenticated();
             })
             .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
