@@ -6,7 +6,7 @@
 <ul>
   <li>Use <strong>[POST] /signup (http://localhost:8080/signup)</strong></li>
   <li>Parameters: </li>
-  <li>Body :<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword"}</strong>   </li>
+  <li>Body :<strong>{"fullName": "YourFullName","email": "YourEmail","phoneNumber":"+273612345678","password": "YourPassword","type":"UserType"}</strong>   </li>
   <li>Returns Returns code 200,response {
   "kind": "identitytoolkit#VerifyPasswordResponse",
   "localId": "UserUid",
@@ -45,8 +45,8 @@
 <ul>
   <li>Use <strong>[POST] /google-login</strong></li>
   <li>Parameters: </li>
-  <li>Body :<strong>{"request": "YourGoogleToken"}</strong></li>
-  <li>Returns code 200, response { UId: UserUID, email : UserEmail }</li>
+  <li>Body :<strong>{"request": "YourGoogleToken","type":"UserType"}</strong></li>
+  <li>Returns code 200, response {Google login of UserEmail successful}</li>
   <li>Returns something, try it</li>
 </ul>
 
