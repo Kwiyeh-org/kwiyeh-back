@@ -87,8 +87,8 @@ public class UserService{
     public List<TalentInfo> getTalents() throws InterruptedException, ExecutionException {
         Firestore dbFirestore = FirestoreClient.getFirestore();
         ApiFuture<QuerySnapshot> querySnapshot = (ApiFuture<QuerySnapshot>) dbFirestore.collection("userInfo")
-        .select("uid", "email", "fullName", "phoneNumber", "type")
-        .whereEqualTo("type", "talent")
+        .select("uid", "email", "fullName", "phoneNumber", "role")
+        .whereEqualTo("role", "talent")
         .get();
         QuerySnapshot document = querySnapshot.get();
         List<TalentInfo> talents;

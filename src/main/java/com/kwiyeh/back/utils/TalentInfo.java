@@ -5,7 +5,7 @@ public class TalentInfo {
     private String email;
     private String fullName;
     private String phoneNumber;
-    private String type;
+    private String role;
     private String talentName;
     private String talentDescription;
     private String talentCategory;
@@ -30,8 +30,8 @@ public class TalentInfo {
     public String getFullName() {
         return fullName;
     }
-    public String getType() {
-        return type;
+    public String getRole() {
+        return role;
     }
 
 
@@ -44,8 +44,8 @@ public class TalentInfo {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
-    public void setType(String type) {
-        this.type = type;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getTalentName() {
@@ -113,7 +113,7 @@ public class TalentInfo {
                 "\"uid\":\"" + uid + "\"," +
                 "\"email\":\"" + email + "\"," +
                 "\"phoneNumber\":\"" + phoneNumber + "\"," +
-                "\"type\":\"" + type + "\"," +
+                "\"role\":\"" + role + "\"," +
                 "\"talentName\":\"" + talentName + "\"," +
                 "\"talentDescription\":\"" + talentDescription + "\"," +
                 "\"talentCategory\":\"" + talentCategory + "\"," +

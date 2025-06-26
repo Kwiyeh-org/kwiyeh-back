@@ -28,12 +28,12 @@ public class UserController {
     public UserService userService= new UserService();
 
     @GetMapping("/getUserInfo")
-    public ResponseEntity<String> getUserInfo(@RequestHeader("Authorization") String token, @RequestParam String type) {
+    public ResponseEntity<String> getUserInfo(@RequestHeader("Authorization") String token, @RequestParam String role) {
         token = token.replace("Bearer ", "");
         ApiFuture<FirebaseToken> decodedToken = FirebaseAuth.getInstance().verifyIdTokenAsync(token);
         try{
             String uid = decodedToken.get().getUid();
-            if("talent".equals(type)){
+            if("talent".equals(role)){
                 UserTalent user = userService.getTalentInfo(uid);
                 return ResponseEntity.ok(user.toJson());
             }
