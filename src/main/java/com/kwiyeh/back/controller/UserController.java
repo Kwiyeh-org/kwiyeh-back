@@ -46,12 +46,14 @@ public class UserController {
             return ResponseEntity.status(500).body("Error retrieving user information: " + e.getMessage());
         }
     }
+
     @DeleteMapping("/deleteAccount")
     public ResponseEntity<String> deleteAccount(@RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         ApiFuture<FirebaseToken> decodedToken = FirebaseAuth.getInstance().verifyIdTokenAsync(token);
         try {
             String uid = decodedToken.get().getUid();
+            System.out.println("Deleting user with UID: " + uid);
             FirebaseAuth.getInstance().deleteUser(uid);
             return ResponseEntity.ok("Account deleted successfully");
         } catch (FirebaseAuthException e) {
@@ -63,7 +65,7 @@ public class UserController {
     @PostMapping("/updateUserInfo")
     public String updateUserInfo(@RequestBody AppUser user) {
         try {
-            userService.addUserInfo(user);
+            userService.updateUser(user);
             return "User information updated successfully ";
         } catch (InterruptedException | ExecutionException e) {
             return "Error updating user information: " + e.getMessage();

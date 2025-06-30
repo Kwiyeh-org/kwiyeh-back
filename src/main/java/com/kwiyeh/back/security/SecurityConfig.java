@@ -2,6 +2,7 @@ package com.kwiyeh.back.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,6 +28,7 @@ public class SecurityConfig {
                     "/verifyCode",
                     "/google-login"
                 ).permitAll();
+                registry.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll(); // Allow all OPTIONS requests
                 registry.anyRequest().authenticated();
             })
             .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)

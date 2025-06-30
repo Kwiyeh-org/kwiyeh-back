@@ -118,7 +118,6 @@
     "uid":"UserUID",
     "email":"UserEmail",
     "fullName":"FullName",
-    "password":"NewPassword",
     "phoneNumber": "UserPhoneNumber",
     "role": "UserRole" (client, talent or admin),
     "clientImageUrl": "ClientImageUrl"
@@ -128,7 +127,6 @@
     "uid":"UserUID",
     "email":"UserEmail",
     "fullName":"FullName",
-    "password":"NewPassword"
     "phoneNumber": "UserPhoneNumber",
     "role": "UserRole" (client, talent or admin),
     "talentName": "TalentName",
