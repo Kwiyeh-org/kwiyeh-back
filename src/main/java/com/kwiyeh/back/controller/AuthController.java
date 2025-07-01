@@ -196,8 +196,23 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                     String email = payload.getEmail();
                     String name = (String) payload.get("name");
                     String phone = (String) payload.get("phone_number"); // May be null
-                    UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
-                    String uid = userRecord.getUid();
+                    UserRecord userRecord = null;
+                    String uid = null;
+                    boolean isNewUser = false;
+                    try {
+                        userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+                        uid = userRecord.getUid();
+                    } catch (FirebaseAuthException e) {
+                        // If user not found in Firebase Auth, treat as new user
+                        if ("USER_NOT_FOUND".equals(e.getErrorCode()) || e.getMessage().contains("No user record")) {
+                            // Use Google subject as UID for Firestore
+                            uid = (String) payload.getSubject();
+                            isNewUser = true;
+                        } else {
+                            System.out.println("GoogleIdToken verification failed: " + e);
+                            return ResponseEntity.status(401).body("Invalid Google token");
+                        }
+                    }
                     // Only create user in Firestore if not present
                     if ("talent".equals(role)) {
                         UserTalent user = userService.getTalentInfo(uid);

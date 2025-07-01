@@ -17,6 +17,7 @@ import com.google.api.core.ApiFuture;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.cloud.FirestoreClient;
 import com.kwiyeh.back.model.AppUser;
 import com.kwiyeh.back.model.UserClient;
 import com.kwiyeh.back.model.UserTalent;
@@ -81,6 +82,13 @@ public class UserController {
         try {
             String uid = decodedToken.get().getUid();
             FirebaseAuth.getInstance().deleteUser(uid);
+            // Delete user from Firestore (userInfo collection)
+            try {
+                FirestoreClient.getFirestore().collection("userInfo").document(uid).delete();
+            } catch (Exception firestoreEx) {
+                // Log and continue, since Auth deletion succeeded
+                System.out.println("Firestore user deletion failed: " + firestoreEx.getMessage());
+            }
             return ResponseEntity.ok("Account deleted successfully");
         } catch (FirebaseAuthException e) {
             return ResponseEntity.status(500).body("Error deleting account: " + e.getMessage());
