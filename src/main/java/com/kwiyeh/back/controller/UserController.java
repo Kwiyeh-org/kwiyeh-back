@@ -106,12 +106,16 @@ public class UserController {
         "http://localhost:4200",
         "http://localhost:5173"
     }, allowCredentials = "true")
-    public String updateUserInfo(@RequestBody AppUser user) {
+    public ResponseEntity<String> updateUserInfo(@RequestBody AppUser user) {
+        System.out.println("[DEBUG] /updateUserInfo endpoint hit. Payload: " + user);
+        System.out.println("Received updateUserInfo: " + user);
+        System.out.println("UID: " + user.getUid());
+        System.out.println("UID length: " + (user.getUid() != null ? user.getUid().length() : "null"));
         try {
             userService.addUserInfo(user);
-            return "User information updated successfully ";
+            return ResponseEntity.ok("User information updated successfully");
         } catch (InterruptedException | ExecutionException e) {
-            return "Error updating user information: " + e.getMessage();
+            return ResponseEntity.status(500).body("Error updating user information: " + e.getMessage());
         }
     }
 
