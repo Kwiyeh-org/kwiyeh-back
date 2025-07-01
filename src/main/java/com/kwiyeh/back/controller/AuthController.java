@@ -151,8 +151,10 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
         try {
             // 1. Try Firebase verification (web)
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idTokenString);
+            String email = decodedToken.getEmail();
             String uid = decodedToken.getUid();
-            UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
+            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+            // Only create user in Firestore if not present
             if ("talent".equals(role)) {
                 UserTalent user = userService.getTalentInfo(uid);
                 if (user == null) {
@@ -193,21 +195,10 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                     GoogleIdToken.Payload payload = idToken.getPayload();
                     String email = payload.getEmail();
                     String name = (String) payload.get("name");
-                    String uid = payload.getSubject();
                     String phone = (String) payload.get("phone_number"); // May be null
-                    // Try to get user from Firebase, or create a new one if needed
-                    UserRecord userRecord;
-                    try {
-                        userRecord = FirebaseAuth.getInstance().getUser(uid);
-                    } catch (FirebaseAuthException e) {
-                        // If not found, create user in Firebase
-                        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                                .setUid(uid)
-                                .setEmail(email)
-                                .setDisplayName(name);
-                        if (phone != null) createRequest.setPhoneNumber(phone);
-                        userRecord = FirebaseAuth.getInstance().createUser(createRequest);
-                    }
+                    UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+                    String uid = userRecord.getUid();
+                    // Only create user in Firestore if not present
                     if ("talent".equals(role)) {
                         UserTalent user = userService.getTalentInfo(uid);
                         if (user == null) {
