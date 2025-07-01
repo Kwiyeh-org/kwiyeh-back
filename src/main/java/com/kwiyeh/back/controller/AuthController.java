@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,19 +36,43 @@ import com.kwiyeh.back.utils.MyAppFunctions;
 import com.kwiyeh.back.utils.PasswordResetRequest;
 import com.kwiyeh.back.utils.SignUpRequest;
 import com.kwiyeh.back.utils.VerifyCodeRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
 
 import io.jsonwebtoken.Claims;
 
 
 @RestController
+@CrossOrigin(origins = {
+    "http://localhost:8081", 
+    "http://localhost:8082", 
+    "http://localhost:19006",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:4200",
+    "http://localhost:5173"
+}, allowCredentials = "true")
 public class AuthController {
 
     @Value("${firebase.api.key}")
     private String firebaseApiKey;
+    @Value("${google.mobile.client.id}")
+    private String googleMobileClientId;
     private final MailService mailService = new MailService();
     private final UserService userService = new UserService();
 
     @PostMapping("/signup")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
 public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
     try {
         // Check if email already exists in Firebase
@@ -121,48 +146,104 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
 
     @PostMapping("/google-login")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
+        String idTokenString = request.getToken();
+        String role = request.getRole();
         try {
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(request.getToken());
+            // 1. Try Firebase verification (web)
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idTokenString);
             String uid = decodedToken.getUid();
-
-            // Check if user exists in Firebase (optional, since token verification implies existence)
             UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
-            if("talent".equals(request.getRole())){
+            if ("talent".equals(role)) {
                 UserTalent user = userService.getTalentInfo(uid);
-                if (user == null){
-                    mailService.sendSignupMail(userRecord.getEmail(),userRecord.getDisplayName());
+                if (user == null) {
+                    mailService.sendSignupMail(userRecord.getEmail(), userRecord.getDisplayName());
                     AppUser user2 = new AppUser(
                         userRecord.getUid(),
                         userRecord.getEmail(),
                         userRecord.getDisplayName(),
                         userRecord.getPhoneNumber(),
-                        request.getRole()
+                        role
                     );
                     userService.addUserInfo(user2);
                 }
-            }
-            else{
+            } else {
                 UserClient user = userService.getClientInfo(uid);
-                if (user == null){
-                    mailService.sendSignupMail(userRecord.getEmail(),userRecord.getDisplayName());
+                if (user == null) {
+                    mailService.sendSignupMail(userRecord.getEmail(), userRecord.getDisplayName());
                     AppUser user2 = new AppUser(
                         userRecord.getUid(),
                         userRecord.getEmail(),
                         userRecord.getDisplayName(),
                         userRecord.getPhoneNumber(),
-                        request.getRole()
+                        role
                     );
                     userService.addUserInfo(user2);
                 }
             }
-            System.out.println("Google login of "+userRecord.getEmail()+" successful");
-            return ResponseEntity.ok("Google login of "+userRecord.getEmail()+" successful");
-        } catch (FirebaseAuthException e) {
-            System.out.println(e.getErrorCode().toString());
-            return ResponseEntity.status(401).body("Unauthorized");
-        }catch (InterruptedException | ExecutionException e1) {
-            System.out.println(e1.toString());
-            return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
+            System.out.println("Google login of " + userRecord.getEmail() + " successful (Firebase)");
+            return ResponseEntity.ok("Google login of " + userRecord.getEmail() + " successful");
+        } catch (FirebaseAuthException | InterruptedException | ExecutionException firebaseEx) {
+            // 2. If Firebase fails, try GoogleIdTokenVerifier (mobile)
+            try {
+                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
+                        .setAudience(java.util.Collections.singletonList(googleMobileClientId))
+                        .build();
+                GoogleIdToken idToken = verifier.verify(idTokenString);
+                if (idToken != null) {
+                    GoogleIdToken.Payload payload = idToken.getPayload();
+                    String email = payload.getEmail();
+                    String name = (String) payload.get("name");
+                    String uid = payload.getSubject();
+                    String phone = (String) payload.get("phone_number"); // May be null
+                    // Try to get user from Firebase, or create a new one if needed
+                    UserRecord userRecord;
+                    try {
+                        userRecord = FirebaseAuth.getInstance().getUser(uid);
+                    } catch (FirebaseAuthException e) {
+                        // If not found, create user in Firebase
+                        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                                .setUid(uid)
+                                .setEmail(email)
+                                .setDisplayName(name);
+                        if (phone != null) createRequest.setPhoneNumber(phone);
+                        userRecord = FirebaseAuth.getInstance().createUser(createRequest);
+                    }
+                    if ("talent".equals(role)) {
+                        UserTalent user = userService.getTalentInfo(uid);
+                        if (user == null) {
+                            mailService.sendSignupMail(email, name);
+                            AppUser user2 = new AppUser(
+                                uid,
+                                email,
+                                name,
+                                phone,
+                                role
+                            );
+                            userService.addUserInfo(user2);
+                        }
+                    } else {
+                        UserClient user = userService.getClientInfo(uid);
+                        if (user == null) {
+                            mailService.sendSignupMail(email, name);
+                            AppUser user2 = new AppUser(
+                                uid,
+                                email,
+                                name,
+                                phone,
+                                role
+                            );
+                            userService.addUserInfo(user2);
+                        }
+                    }
+                    System.out.println("Google login of " + email + " successful (GoogleIdToken)");
+                    return ResponseEntity.ok("Google login of " + email + " successful");
+                } else {
+                    return ResponseEntity.status(401).body("Invalid Google token");
+                }
+            } catch (Exception googleEx) {
+                System.out.println("GoogleIdToken verification failed: " + googleEx);
+                return ResponseEntity.status(401).body("Invalid Google token");
+            }
         }
     }
 

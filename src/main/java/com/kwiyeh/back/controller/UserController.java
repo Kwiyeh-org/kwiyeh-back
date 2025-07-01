@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,10 +25,28 @@ import com.kwiyeh.back.utils.TalentInfo;
 
 
 @RestController
+@CrossOrigin(origins = {
+    "http://localhost:8081", 
+    "http://localhost:8082", 
+    "http://localhost:19006",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:4200",
+    "http://localhost:5173"
+}, allowCredentials = "true")
 public class UserController {
     public UserService userService= new UserService();
 
     @GetMapping("/getUserInfo")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
     public ResponseEntity<String> getUserInfo(@RequestHeader("Authorization") String token, @RequestParam String role) {
         token = token.replace("Bearer ", "");
         ApiFuture<FirebaseToken> decodedToken = FirebaseAuth.getInstance().verifyIdTokenAsync(token);
@@ -47,6 +66,15 @@ public class UserController {
         }
     }
     @DeleteMapping("/deleteAccount")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
     public ResponseEntity<String> deleteAccount(@RequestHeader("Authorization") String token) {
         token = token.replace("Bearer ", "");
         ApiFuture<FirebaseToken> decodedToken = FirebaseAuth.getInstance().verifyIdTokenAsync(token);
@@ -61,6 +89,15 @@ public class UserController {
         }
     }
     @PostMapping("/updateUserInfo")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
     public String updateUserInfo(@RequestBody AppUser user) {
         try {
             userService.addUserInfo(user);
@@ -71,6 +108,15 @@ public class UserController {
     }
 
     @GetMapping("/getTalents")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
     public ResponseEntity<String> getTalents(@RequestParam String uid) {
         try {
             List<TalentInfo> talentList= userService.getTalents();
