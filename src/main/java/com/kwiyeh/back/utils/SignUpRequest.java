@@ -27,8 +27,6 @@ public class SignUpRequest {
         return role;
     }
 
-
-
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
@@ -49,4 +47,14 @@ public class SignUpRequest {
         this.role = role;
     }
 
+    @Override
+    public String toString() {
+        return "SignUpRequest{" +
+                "fullName='" + fullName + '\'' +
+                ", email='" + email + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", password='***'" +
+                ", role='" + role + '\'' +
+                '}';
+    }
 }

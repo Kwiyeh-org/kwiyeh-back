@@ -12,6 +12,18 @@ public class AppUser {
     private String role;
     private String location;
 
+    // Client-specific fields
+    private String clientImageUrl;
+    private String clientLocation;
+
+    // Talent-specific fields
+    private String talentImageUrl;
+    private String talentLocation;
+    private String talentCategory;
+    private String talentDescription;
+    private String pricing;
+    private String availability;
+
     public AppUser( String uid,String email, String fullName, String phoneNumber, String role) {
         this.uid = uid;
         this.email = email;
@@ -61,5 +73,105 @@ public class AppUser {
     }
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    // Client fields
+    public String getClientImageUrl() {
+        return clientImageUrl;
+    }
+    public void setClientImageUrl(String clientImageUrl) {
+        this.clientImageUrl = clientImageUrl;
+    }
+    public String getClientLocation() {
+        return clientLocation;
+    }
+    public void setClientLocation(String clientLocation) {
+        this.clientLocation = clientLocation;
+    }
+
+    // Talent fields
+    public String getTalentImageUrl() {
+        return talentImageUrl;
+    }
+    public void setTalentImageUrl(String talentImageUrl) {
+        this.talentImageUrl = talentImageUrl;
+    }
+    public String getTalentLocation() {
+        return talentLocation;
+    }
+    public void setTalentLocation(String talentLocation) {
+        this.talentLocation = talentLocation;
+    }
+    public String getTalentCategory() {
+        return talentCategory;
+    }
+    public void setTalentCategory(String talentCategory) {
+        this.talentCategory = talentCategory;
+    }
+    public String getTalentDescription() {
+        return talentDescription;
+    }
+    public void setTalentDescription(String talentDescription) {
+        this.talentDescription = talentDescription;
+    }
+    public String getPricing() {
+        return pricing;
+    }
+    public void setPricing(String pricing) {
+        this.pricing = pricing;
+    }
+    public String getAvailability() {
+        return availability;
+    }
+    public void setAvailability(String availability) {
+        this.availability = availability;
+    }
+
+    // Role-specific JSON
+    public String toClientJson() {
+        return "{" +
+                "\"uid\":\"" + uid + "\"," +
+                "\"email\":\"" + email + "\"," +
+                "\"fullName\":\"" + fullName + "\"," +
+                "\"phoneNumber\":\"" + phoneNumber + "\"," +
+                "\"role\":\"client\"," +
+                "\"clientImageUrl\":\"" + clientImageUrl + "\"," +
+                "\"location\":\"" + clientLocation + "\"" +
+                "}";
+    }
+    public String toTalentJson() {
+        return "{" +
+                "\"uid\":\"" + uid + "\"," +
+                "\"email\":\"" + email + "\"," +
+                "\"fullName\":\"" + fullName + "\"," +
+                "\"phoneNumber\":\"" + phoneNumber + "\"," +
+                "\"role\":\"talent\"," +
+                "\"talentImageUrl\":\"" + talentImageUrl + "\"," +
+                "\"location\":\"" + talentLocation + "\"," +
+                "\"talentCategory\":\"" + talentCategory + "\"," +
+                "\"talentDescription\":\"" + talentDescription + "\"," +
+                "\"pricing\":\"" + pricing + "\"," +
+                "\"availability\":\"" + availability + "\"" +
+                "}";
+    }
+
+    @Override
+    public String toString() {
+        return "AppUser{" +
+                "uid='" + uid + '\'' +
+                ", email='" + email + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", role='" + role + '\'' +
+                ", location='" + location + '\'' +
+                ", clientImageUrl='" + clientImageUrl + '\'' +
+                ", clientLocation='" + clientLocation + '\'' +
+                ", talentImageUrl='" + talentImageUrl + '\'' +
+                ", talentLocation='" + talentLocation + '\'' +
+                ", talentCategory='" + talentCategory + '\'' +
+                ", talentDescription='" + talentDescription + '\'' +
+                ", pricing='" + pricing + '\'' +
+                ", availability='" + availability + '\'' +
+                '}';
     }
 }

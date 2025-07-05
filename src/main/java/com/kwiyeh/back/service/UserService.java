@@ -80,8 +80,22 @@ public class UserService{
 
     public String updateUser(AppUser user) throws InterruptedException, ExecutionException{
         Firestore dbFirestore = FirestoreClient.getFirestore();
-        ApiFuture<WriteResult> collectionApiFuture = (ApiFuture<WriteResult>) dbFirestore.collection("userInfo").document(user.getUid()).set(user);
-        return collectionApiFuture.get().getUpdateTime().toString();
+        ApiFuture<WriteResult> writeResult = dbFirestore.collection("userInfo").document(user.getUid()).set(user);
+        return writeResult.get().getUpdateTime().toString();
+    }
+
+    public String updateClientInfo(AppUser user) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference docRef = dbFirestore.collection("userInfo").document(user.getUid());
+        ApiFuture<WriteResult> writeResult = docRef.set(user);
+        return writeResult.get().getUpdateTime().toString();
+    }
+
+    public String updateTalentInfo(AppUser user) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference docRef = dbFirestore.collection("userInfo").document(user.getUid());
+        ApiFuture<WriteResult> writeResult = docRef.set(user);
+        return writeResult.get().getUpdateTime().toString();
     }
 
     public List<TalentInfo> getTalents() throws InterruptedException, ExecutionException {
@@ -97,6 +111,17 @@ public class UserService{
             if (!talents.isEmpty()) {
                 return talents;
             }
+        }
+        return null;
+    }
+
+    public AppUser getUserInfo(String uid) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        DocumentReference documentReference = dbFirestore.collection("userInfo").document(uid);
+        ApiFuture<DocumentSnapshot> future = documentReference.get();
+        DocumentSnapshot document = future.get();
+        if (document.exists()) {
+            return document.toObject(AppUser.class);
         }
         return null;
     }

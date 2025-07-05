@@ -17,24 +17,24 @@ public class FirebaseInitialization {
 
     public FirebaseApp FireStoreInitialization(){
         FileInputStream serviceAccount = null;
-            try {
-                serviceAccount = new FileInputStream("serviceAccountKey.json");
-            } catch (FileNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+        try {
+            serviceAccount = new FileInputStream("serviceAccountKey.json");
+        } catch (FileNotFoundException e) {
+            // TODO: Handle this exception properly.
+            e.printStackTrace();
+        }
 
-            FirebaseOptions options = null;
+        FirebaseOptions options = null;
 
-            try {
-                options = new FirebaseOptions.Builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .setDatabaseUrl(firebaseDatabaseUrl)
-                .build();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+        try {
+            options = new FirebaseOptions.Builder()
+            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+            .setDatabaseUrl(firebaseDatabaseUrl)
+            .build();
+        } catch (IOException e) {
+            // TODO: Handle this exception properly.
+            e.printStackTrace();
+        }
 
         return FirebaseApp.initializeApp(options);
     }

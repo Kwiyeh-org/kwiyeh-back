@@ -36,7 +36,8 @@ public class UserTalent extends AppUser{
                 "\"talentCategory\":\"" + talentCategory + "\"," +
                 "\"talentImageUrl\":\"" + talentImageUrl + "\"," +
                 "\"pricing\":\"" + pricing + "\"," +
-                "\"availability\":\"" + availability + "\"" +
+                "\"availability\":\"" + availability + "\"," +
+                "\"location\":\"" + (getLocation() != null ? getLocation() : "") + "\"" +
                 "}";
     }
 
