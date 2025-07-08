@@ -143,122 +143,138 @@ public class UserController {
     }
     @PostMapping("/updateUserInfo")
     @CrossOrigin(origins = {
-        "http://localhost:8081", 
-        "http://localhost:8082", 
-        "http://localhost:19006",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:4200",
-        "http://localhost:5173"
+        "http://localhost:8081", "http://localhost:8082", "http://localhost:19006",
+        "http://localhost:3000", "http://localhost:3001", "http://localhost:4200", "http://localhost:5173"
     }, allowCredentials = "true")
-    public ResponseEntity<?> updateUserInfo(@RequestBody AppUser user) {
-        System.out.println("[updateUserInfo] Payload: " + user.toString());
-        System.out.println("[updateUserInfo] Debug - Location: " + user.getLocation());
-        System.out.println("[updateUserInfo] Debug - ClientLocation: " + user.getClientLocation());
-        System.out.println("[updateUserInfo] Debug - TalentLocation: " + user.getTalentLocation());
+    public ResponseEntity<?> updateUserInfo(@RequestBody java.util.Map<String, Object> userMap) {
+        System.out.println("[updateUserInfo] RAW MAP: " + userMap);
         try {
-            String uid = user.getUid();
-            String role = user.getRole();
-            AppUser existingUser = userService.getUserInfo(uid);
-            if (existingUser == null) {
-                existingUser = new AppUser();
-                existingUser.setUid(uid);
-                existingUser.setEmail(user.getEmail());
-                existingUser.setRole(role);
-            }
-            String imageUrl = null;
-            if ("client".equals(role)) {
-                if (user.getClientImageUrl() != null && user.getClientImageUrl().startsWith("data:image")) {
-                    System.out.println("[updateUserInfo] Uploading client image to Cloudinary");
-                    try {
-                        String base64Data = user.getClientImageUrl();
-                        if (base64Data.contains(",")) {
-                            base64Data = base64Data.substring(base64Data.indexOf(",") + 1);
+            String uid = (String) userMap.get("uid");
+            String role = (String) userMap.get("role");
+            if ("talent".equals(role)) {
+                com.kwiyeh.back.model.UserTalent existingUser = userService.getTalentInfo(uid);
+                if (existingUser == null) {
+                    existingUser = new com.kwiyeh.back.model.UserTalent();
+                    existingUser.setUid(uid);
+                    existingUser.setRole(role);
+                }
+                // Only update fields present in the request
+                if (userMap.containsKey("email")) existingUser.setEmail((String) userMap.get("email"));
+                if (userMap.containsKey("fullName") || userMap.containsKey("name"))
+                    existingUser.setFullName((String) userMap.getOrDefault("fullName", userMap.get("name")));
+                if (userMap.containsKey("phoneNumber")) existingUser.setPhoneNumber((String) userMap.get("phoneNumber"));
+                // Handle image upload (base64 or URL)
+                if (userMap.containsKey("photoURL") || userMap.containsKey("talentImageUrl")) {
+                    String photoURL = (String) userMap.getOrDefault("photoURL", userMap.get("talentImageUrl"));
+                    if (photoURL != null && photoURL.startsWith("data:image")) {
+                        try {
+                            String base64Data = photoURL.contains(",") ? photoURL.substring(photoURL.indexOf(",") + 1) : photoURL;
+                            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
+                            Map<String, Object> uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap("resource_type", "image"));
+                            photoURL = (String) uploadResult.get("secure_url");
+                        } catch (Exception e) {
+                            System.out.println("[updateUserInfo] Cloudinary upload error: " + e.getMessage());
+                            return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
                         }
-                        byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
-                        Map<String, Object> uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap("resource_type", "image"));
-                        imageUrl = (String) uploadResult.get("secure_url");
-                        System.out.println("[updateUserInfo] Cloudinary upload result: " + imageUrl);
-                        existingUser.setClientImageUrl(imageUrl);
-                    } catch (Exception e) {
-                        System.out.println("[updateUserInfo] Cloudinary upload error: " + e.getMessage());
-                        return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
                     }
-                } else if (user.getClientImageUrl() != null && user.getClientImageUrl().startsWith("http")) {
-                    existingUser.setClientImageUrl(user.getClientImageUrl());
+                    existingUser.setTalentImageUrl(photoURL);
                 }
-                if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) existingUser.setFullName(user.getFullName());
-                if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) existingUser.setPhoneNumber(user.getPhoneNumber());
-                // Handle both clientLocation and generic location field
-                if (user.getClientLocation() != null && !user.getClientLocation().trim().isEmpty()) {
-                    existingUser.setClientLocation(user.getClientLocation());
-                } else if (user.getLocation() != null && !user.getLocation().trim().isEmpty()) {
-                    existingUser.setClientLocation(user.getLocation());
+                if (userMap.containsKey("location")) {
+                    Object locationObj = userMap.get("location");
+                    if (locationObj != null) {
+                        existingUser.setTalentLocation(locationObj.toString());
+                    }
                 }
+                if (userMap.containsKey("talentCategory")) existingUser.setTalentCategory((String) userMap.get("talentCategory"));
+                if (userMap.containsKey("talentDescription")) existingUser.setTalentDescription((String) userMap.get("talentDescription"));
+                if (userMap.containsKey("experience")) existingUser.setExperience((String) userMap.get("experience"));
+                if (userMap.containsKey("pricing")) existingUser.setPricing((String) userMap.get("pricing"));
+                if (userMap.containsKey("availability")) existingUser.setAvailability((String) userMap.get("availability"));
+                // Handle services robustly
+                if (userMap.containsKey("services")) {
+                    Object servicesObj = userMap.get("services");
+                    java.util.List<String> services = null;
+                    if (servicesObj instanceof java.util.List<?>) {
+                        services = ((java.util.List<?>) servicesObj).stream().map(Object::toString).collect(java.util.stream.Collectors.toList());
+                    } else if (servicesObj instanceof String) {
+                        services = java.util.Arrays.asList(((String) servicesObj).split(","));
+                    }
+                    existingUser.setServices(services);
+                }
+                // Save to Firestore
                 userService.updateUser(existingUser);
-                // Unified response
+                // Always read back from Firestore to get the true persisted state
+                com.kwiyeh.back.model.UserTalent savedUser = userService.getTalentInfo(uid);
+                // Build response from savedUser
                 var resp = new java.util.LinkedHashMap<String, Object>();
-                resp.put("uid", existingUser.getUid());
-                resp.put("email", existingUser.getEmail());
-                resp.put("fullName", existingUser.getFullName());
-                resp.put("phoneNumber", existingUser.getPhoneNumber());
-                resp.put("role", existingUser.getRole());
-                resp.put("photoURL", existingUser.getClientImageUrl());
-                resp.put("location", existingUser.getClientLocation());
+                resp.put("uid", savedUser.getUid());
+                resp.put("email", savedUser.getEmail());
+                resp.put("fullName", savedUser.getFullName());
+                resp.put("phoneNumber", savedUser.getPhoneNumber());
+                resp.put("role", savedUser.getRole());
+                resp.put("photoURL", savedUser.getTalentImageUrl());
+                resp.put("location", savedUser.getTalentLocation());
+                resp.put("talentCategory", savedUser.getTalentCategory());
+                resp.put("talentDescription", savedUser.getTalentDescription());
+                resp.put("experience", savedUser.getExperience());
+                resp.put("pricing", savedUser.getPricing());
+                resp.put("availability", savedUser.getAvailability());
+                resp.put("services", savedUser.getServices() != null ? savedUser.getServices() : new java.util.ArrayList<>());
                 String json = objectMapper.writeValueAsString(resp);
                 System.out.println("[updateUserInfo] Response: " + json);
                 return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(json);
-            } else if ("talent".equals(role)) {
-                if (user.getTalentImageUrl() != null && user.getTalentImageUrl().startsWith("data:image")) {
-                    System.out.println("[updateUserInfo] Uploading talent image to Cloudinary");
-                    try {
-                        String base64Data = user.getTalentImageUrl();
-                        if (base64Data.contains(",")) {
-                            base64Data = base64Data.substring(base64Data.indexOf(",") + 1);
+            } else if ("client".equals(role)) {
+                com.kwiyeh.back.model.UserClient existingUser = userService.getClientInfo(uid);
+                if (existingUser == null) {
+                    existingUser = new com.kwiyeh.back.model.UserClient();
+                    existingUser.setUid(uid);
+                    existingUser.setRole(role);
+                }
+                // Only update fields present in the request
+                if (userMap.containsKey("email")) existingUser.setEmail((String) userMap.get("email"));
+                if (userMap.containsKey("fullName") || userMap.containsKey("name"))
+                    existingUser.setFullName((String) userMap.getOrDefault("fullName", userMap.get("name")));
+                if (userMap.containsKey("phoneNumber")) existingUser.setPhoneNumber((String) userMap.get("phoneNumber"));
+                // Handle image upload (base64 or URL)
+                if (userMap.containsKey("photoURL") || userMap.containsKey("clientImageUrl")) {
+                    String photoURL = (String) userMap.getOrDefault("photoURL", userMap.get("clientImageUrl"));
+                    if (photoURL != null && photoURL.startsWith("data:image")) {
+                        try {
+                            String base64Data = photoURL.contains(",") ? photoURL.substring(photoURL.indexOf(",") + 1) : photoURL;
+                            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
+                            Map<String, Object> uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap("resource_type", "image"));
+                            photoURL = (String) uploadResult.get("secure_url");
+                        } catch (Exception e) {
+                            System.out.println("[updateUserInfo] Cloudinary upload error (client): " + e.getMessage());
+                            return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
                         }
-                        byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
-                        Map<String, Object> uploadResult = cloudinary.uploader().upload(imageBytes, ObjectUtils.asMap("resource_type", "image"));
-                        imageUrl = (String) uploadResult.get("secure_url");
-                        System.out.println("[updateUserInfo] Cloudinary upload result: " + imageUrl);
-                        existingUser.setTalentImageUrl(imageUrl);
-                    } catch (Exception e) {
-                        System.out.println("[updateUserInfo] Cloudinary upload error: " + e.getMessage());
-                        return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
                     }
-                } else if (user.getTalentImageUrl() != null && user.getTalentImageUrl().startsWith("http")) {
-                    existingUser.setTalentImageUrl(user.getTalentImageUrl());
+                    existingUser.setClientImageUrl(photoURL);
                 }
-                if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) existingUser.setFullName(user.getFullName());
-                if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) existingUser.setPhoneNumber(user.getPhoneNumber());
-                // Handle both talentLocation and generic location field
-                if (user.getTalentLocation() != null && !user.getTalentLocation().trim().isEmpty()) {
-                    existingUser.setTalentLocation(user.getTalentLocation());
-                } else if (user.getLocation() != null && !user.getLocation().trim().isEmpty()) {
-                    existingUser.setTalentLocation(user.getLocation());
+                if (userMap.containsKey("location")) {
+                    Object locationObj = userMap.get("location");
+                    if (locationObj != null) {
+                        existingUser.setLocation(locationObj.toString());
+                    }
                 }
-                if (user.getTalentCategory() != null && !user.getTalentCategory().trim().isEmpty()) existingUser.setTalentCategory(user.getTalentCategory());
-                if (user.getTalentDescription() != null && !user.getTalentDescription().trim().isEmpty()) existingUser.setTalentDescription(user.getTalentDescription());
-                if (user.getPricing() != null && !user.getPricing().trim().isEmpty()) existingUser.setPricing(user.getPricing());
-                if (user.getAvailability() != null && !user.getAvailability().trim().isEmpty()) existingUser.setAvailability(user.getAvailability());
+                // Save to Firestore
                 userService.updateUser(existingUser);
-                // Unified response
+                // Always read back from Firestore to get the true persisted state
+                com.kwiyeh.back.model.UserClient savedUser = userService.getClientInfo(uid);
+                // Build response from savedUser
                 var resp = new java.util.LinkedHashMap<String, Object>();
-                resp.put("uid", existingUser.getUid());
-                resp.put("email", existingUser.getEmail());
-                resp.put("fullName", existingUser.getFullName());
-                resp.put("phoneNumber", existingUser.getPhoneNumber());
-                resp.put("role", existingUser.getRole());
-                resp.put("photoURL", existingUser.getTalentImageUrl());
-                resp.put("location", existingUser.getTalentLocation());
-                resp.put("talentCategory", existingUser.getTalentCategory());
-                resp.put("talentDescription", existingUser.getTalentDescription());
-                resp.put("pricing", existingUser.getPricing());
-                resp.put("availability", existingUser.getAvailability());
-                System.out.println("[updateUserInfo] Response: " + resp);
-                return ResponseEntity.ok(resp);
+                resp.put("uid", savedUser.getUid());
+                resp.put("email", savedUser.getEmail());
+                resp.put("fullName", savedUser.getFullName());
+                resp.put("phoneNumber", savedUser.getPhoneNumber());
+                resp.put("role", savedUser.getRole());
+                resp.put("photoURL", savedUser.getClientImageUrl());
+                resp.put("location", savedUser.getLocation());
+                String json = objectMapper.writeValueAsString(resp);
+                System.out.println("[updateUserInfo] Response (client): " + json);
+                return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(json);
             } else {
-                System.out.println("[updateUserInfo] Unknown role: " + role);
-                return ResponseEntity.status(400).body("Unknown role: " + role);
+                return ResponseEntity.status(501).body("Only talent or client update supported");
             }
         } catch (Exception e) {
             System.out.println("[updateUserInfo] Error: " + e.getMessage());

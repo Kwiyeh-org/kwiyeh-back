@@ -1,5 +1,7 @@
 package com.kwiyeh.back.model;
 
+import java.util.List;
+
 public class UserTalent extends AppUser{
     private String talentName;
     private String talentDescription;
@@ -8,6 +10,8 @@ public class UserTalent extends AppUser{
     private String pricing;
     private String availability;
     private String rating;
+    private List<String> services;
+    private String experience;
 
     public UserTalent(String uid, String email, String fullName, String phoneNumber, String role,
                       String talentName, String talentDescription, String talentCategory, String talentImageUrl, String location, String pricing, String availability) {
@@ -90,5 +94,21 @@ public class UserTalent extends AppUser{
     }
     public void setRating(String rating) {
         this.rating = rating;
+    }
+
+    public List<String> getServices() {
+        return services;
+    }
+
+    public void setServices(List<String> services) {
+        this.services = services;
+    }
+
+    public String getExperience() {
+        return experience;
+    }
+
+    public void setExperience(String experience) {
+        this.experience = experience;
     }
 }

@@ -121,7 +121,14 @@ public class UserService{
         ApiFuture<DocumentSnapshot> future = documentReference.get();
         DocumentSnapshot document = future.get();
         if (document.exists()) {
-            return document.toObject(AppUser.class);
+            String role = document.getString("role");
+            if ("talent".equals(role)) {
+                return document.toObject(UserTalent.class);
+            } else if ("client".equals(role)) {
+                return document.toObject(UserClient.class);
+            } else {
+                return document.toObject(AppUser.class);
+            }
         }
         return null;
     }
