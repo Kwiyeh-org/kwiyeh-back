@@ -1,16 +1,23 @@
 package com.kwiyeh.back.firebase;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.google.firebase.auth.UserRecord;
 import com.kwiyeh.back.utils.JwtUtil;
 
 import io.jsonwebtoken.Claims;
@@ -26,6 +33,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class AuthenticationFilter implements Filter {
 
+    @Value("${firebase.database.url}")
+    private String googleMobileClientId;
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -37,7 +47,6 @@ public class AuthenticationFilter implements Filter {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(decodedToken.getUid(), null, Collections.emptyList());
-
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails((HttpServletRequest) request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (FirebaseAuthException e) {
@@ -53,7 +62,19 @@ public class AuthenticationFilter implements Filter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 } catch (JwtException e1) {
-                    ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                    try{
+                        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
+                        .setAudience(java.util.Collections.singletonList(googleMobileClientId))
+                        .build();
+                        GoogleIdToken idToken = verifier.verify(token);
+                        UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(idToken.getPayload().getEmail());
+                        UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userRecord.getUid(), null, Collections.emptyList());
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                    catch(GeneralSecurityException | FirebaseAuthException e2){
+                        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                    }
                 }
             }
         }

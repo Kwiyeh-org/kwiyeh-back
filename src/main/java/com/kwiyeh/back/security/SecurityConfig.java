@@ -26,7 +26,8 @@ public class SecurityConfig {
                     "/login",
                     "/forgetPassword",
                     "/verifyCode",
-                    "/google-login"
+                    "/google-login",
+                    "/getUser"
                 ).permitAll();
                 registry.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll(); // Allow all OPTIONS requests
                 registry.anyRequest().authenticated();

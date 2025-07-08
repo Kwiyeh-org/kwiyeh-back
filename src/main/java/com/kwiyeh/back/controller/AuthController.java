@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -44,6 +48,9 @@ public class AuthController {
 
     @Value("${firebase.api.key}")
     private String firebaseApiKey;
+    @Value("${firebase.database.url}")
+    private String googleMobileClientId;
+
     private final MailService mailService = new MailService();
     private final UserService userService = new UserService();
 
@@ -158,8 +165,56 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
             System.out.println("Google login of "+userRecord.getEmail()+" successful");
             return ResponseEntity.ok("Google login of "+userRecord.getEmail()+" successful");
         } catch (FirebaseAuthException e) {
-            System.out.println(e.getErrorCode().toString());
-            return ResponseEntity.status(401).body("Unauthorized");
+            try {
+                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
+                        .setAudience(java.util.Collections.singletonList(googleMobileClientId))
+                        .build();
+                GoogleIdToken idToken = verifier.verify(request.getToken());
+                if (idToken != null) {
+                    GoogleIdToken.Payload payload = idToken.getPayload();
+                    String email = payload.getEmail();
+                    String name = (String) payload.get("name");
+                    String phone = (String) payload.get("phone_number"); // May be null
+                    UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+                    String uid = userRecord.getUid();
+                    // Only create user in Firestore if not present
+                    if ("talent".equals(request.getRole())) {
+                        UserTalent user = userService.getTalentInfo(uid);
+                        if (user == null) {
+                            mailService.sendSignupMail(email, name);
+                            AppUser user2 = new AppUser(
+                                uid,
+                                email,
+                                name,
+                                phone,
+                                request.getRole()
+                            );
+                            userService.addUserInfo(user2);
+                        }
+                    } else {
+                        UserClient user = userService.getClientInfo(uid);
+                        if (user == null) {
+                            mailService.sendSignupMail(email, name);
+                            AppUser user2 = new AppUser(
+                                uid,
+                                email,
+                                name,
+                                phone,
+                                request.getRole()
+                            );
+                            userService.addUserInfo(user2);
+                        }
+                    }
+                    System.out.println("Google login of " + email + " successful (GoogleIdToken)");
+                    return ResponseEntity.ok("Google login of " + email + " successful");
+                } else {
+                    return ResponseEntity.status(401).body("Invalid Google token");
+                }
+                } catch (Exception googleEx) {
+                System.out.println("GoogleIdToken verification failed: " + googleEx);
+                return ResponseEntity.status(401).body("Invalid Google token");
+            }
+
         }catch (InterruptedException | ExecutionException e1) {
             System.out.println(e1.toString());
             return ResponseEntity.status(HttpStatus.valueOf(500)).body("Unknown error, please try again");
@@ -228,6 +283,32 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
         } catch (FirebaseAuthException e) {
             System.out.println(e.getErrorCode().toString());
             return ResponseEntity.status(e.getErrorCode().ordinal()).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/getUser")
+    public ResponseEntity<?> googleLogin(@RequestParam String uid) {
+    try {
+        UserRecord userRecord = FirebaseAuth.getInstance().getUser(uid);
+        if (userRecord == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        return ResponseEntity.ok(String.format(
+                "{\"uid\":\"%s\", \"email\":\"%s\", \"displayName\":\"%s\", \"phoneNumber\":\"%s\" , \"lastSignInTimestamp\":%d,\"creationTimestamp\":%d, \"lastSignInTimestamp\":%d, \"providerId\":\"%s\", \"providerData\":%s, \"photoUrl\":\"%s\"}",
+                userRecord.getUid(),
+                userRecord.getEmail(),
+                userRecord.getDisplayName(),
+                userRecord.getPhoneNumber(),
+                userRecord.getUserMetadata().getLastSignInTimestamp(),
+                userRecord.getUserMetadata().getCreationTimestamp(),
+                userRecord.getUserMetadata().getLastSignInTimestamp(),
+                userRecord.getProviderId(),
+                userRecord.getProviderData().toString(),
+                userRecord.getPhotoUrl()
+        ));
+        } catch (FirebaseAuthException e) {
+            System.out.println(e.getErrorCode().toString());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
