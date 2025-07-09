@@ -311,4 +311,38 @@ public class UserController {
             return ResponseEntity.status(500).body("Error retrieving talent information: " + e.getMessage());
         }
     }
+
+    @GetMapping("/searchTalentsByService")
+    @CrossOrigin(origins = {
+        "http://localhost:8081", 
+        "http://localhost:8082", 
+        "http://localhost:19006",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:4200",
+        "http://localhost:5173"
+    }, allowCredentials = "true")
+    public ResponseEntity<String> searchTalentsByService(@RequestParam String service) {
+        System.out.println("[searchTalentsByService] Request for service: " + service);
+        try {
+            List<com.kwiyeh.back.model.UserTalent> allTalents = userService.getAllTalents();
+            List<com.kwiyeh.back.model.UserTalent> matchingTalents = new java.util.ArrayList<>();
+            for (com.kwiyeh.back.model.UserTalent talent : allTalents) {
+                if (talent.getServices() != null && talent.getServices().contains(service)) {
+                    matchingTalents.add(talent);
+                }
+            }
+            // Convert to JSON response with all fields
+            String json = objectMapper.writeValueAsString(matchingTalents);
+            System.out.println("[searchTalentsByService] Found " + matchingTalents.size() + " talents for service: " + service);
+            System.out.println("[searchTalentsByService] Response: " + json);
+            return ResponseEntity.ok(json);
+        } catch (InterruptedException | ExecutionException e) {
+            System.out.println("[searchTalentsByService] Error: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error searching talents: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("[searchTalentsByService] Unexpected Error: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
 }

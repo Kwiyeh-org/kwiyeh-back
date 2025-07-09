@@ -363,7 +363,7 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                     String email = payload.getEmail();
                     String name = (String) payload.get("name");
                 
-                System.out.println("[google-login] Email: " + email + ", Role: " + role);
+                System.out.println("[google-login] Email: " + email + ", Role: " + role + ", Name from token: " + name);
                 
                 // Check if user exists in Firebase with original email
                     UserRecord userRecord = null;
@@ -432,6 +432,12 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                     System.out.println("[google-login] Created new user in Firestore: " + email + ", Role: " + role);
                         } else {
                     System.out.println("[google-login] User already exists in Firestore: " + email + ", Role: " + role);
+                    // Update user's name if it's null but we have a name from Google token
+                    if ((existingAppUser.getFullName() == null || existingAppUser.getFullName().isEmpty()) && name != null && !name.isEmpty()) {
+                        existingAppUser.setFullName(name);
+                        userService.updateUser(existingAppUser);
+                        System.out.println("[google-login] Updated user name from Google token: " + name);
+                    }
                         }
                 
                     // Fetch and return full profile
@@ -458,13 +464,13 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                 resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
                 resp.put("localId", savedUser.getUid());
                 resp.put("email", savedUser.getEmail()); // Always return original email
-                resp.put("displayName", savedUser.getFullName());
+                resp.put("displayName", name != null ? name : savedUser.getFullName());
                 resp.put("idToken", idToken2);
                 resp.put("registered", true);
                 resp.put("refreshToken", refreshToken2);
                 resp.put("expiresIn", expiresIn2);
                     resp.put("uid", savedUser.getUid());
-                    resp.put("fullName", savedUser.getFullName());
+                    resp.put("fullName", name != null ? name : savedUser.getFullName());
                     resp.put("phoneNumber", savedUser.getPhoneNumber());
                     resp.put("role", savedUser.getRole());
                     String photoURL = "client".equals(savedUser.getRole()) ? savedUser.getClientImageUrl() : savedUser.getTalentImageUrl();

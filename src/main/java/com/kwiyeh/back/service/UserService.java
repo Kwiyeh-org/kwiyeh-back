@@ -78,6 +78,22 @@ public class UserService{
         return null;
     }
 
+    public List<UserTalent> getAllTalents() throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> querySnapshot = dbFirestore.collection("userInfo")
+            .whereEqualTo("role", "talent")
+            .get();
+        QuerySnapshot documents = querySnapshot.get();
+        List<UserTalent> talents = new java.util.ArrayList<>();
+        for (DocumentSnapshot document : documents) {
+            UserTalent talent = document.toObject(UserTalent.class);
+            if (talent != null) {
+                talents.add(talent);
+            }
+        }
+        return talents;
+    }
+
     public String updateUser(AppUser user) throws InterruptedException, ExecutionException{
         Firestore dbFirestore = FirestoreClient.getFirestore();
         ApiFuture<WriteResult> writeResult = dbFirestore.collection("userInfo").document(user.getUid()).set(user);
