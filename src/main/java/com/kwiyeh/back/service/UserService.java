@@ -149,6 +149,22 @@ public class UserService{
         return null;
     }
 
+    /**
+     * Checks if a user exists in Firestore with the given email and role.
+     * @param email The email to check.
+     * @param role The role to check (e.g., "client" or "talent").
+     * @return true if a user with the email and role exists, false otherwise.
+     */
+    public boolean userExistsByEmailAndRole(String email, String role) throws InterruptedException, ExecutionException {
+        Firestore dbFirestore = FirestoreClient.getFirestore();
+        ApiFuture<QuerySnapshot> querySnapshot = dbFirestore.collection("userInfo")
+            .whereEqualTo("email", email)
+            .whereEqualTo("role", role)
+            .get();
+        QuerySnapshot documents = querySnapshot.get();
+        return !documents.isEmpty();
+    }
+
     // don't mind this
 
     /*public String createUser(AppUser user) throws InterruptedException, ExecutionException{

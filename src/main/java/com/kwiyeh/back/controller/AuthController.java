@@ -75,22 +75,24 @@ public class AuthController {
         "http://localhost:4200",
         "http://localhost:5173"
     }, allowCredentials = "true")
-public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
+    public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
         System.out.println("[signup] Payload: " + request.toString());
         if (request.getFullName() == null || request.getFullName().trim().isEmpty() ||
             request.getEmail() == null || request.getEmail().trim().isEmpty() ||
-            request.getPhoneNumber() == null || request.getPhoneNumber().trim().isEmpty() ||
             request.getPassword() == null || request.getPassword().trim().isEmpty() ||
             request.getRole() == null || request.getRole().trim().isEmpty()) {
             System.out.println("[signup] Missing required field(s): " + request.toString());
             return ResponseEntity.status(400).body(java.util.Map.of("error", "Missing required field(s)"));
         }
-        
         try {
+            // ENFORCE EMAIL+ROLE UNIQUENESS
+            if (userService.userExistsByEmailAndRole(request.getEmail(), request.getRole())) {
+                System.out.println("[signup] Email already in use for this role (Firestore check): " + request.getEmail() + ", Role: " + request.getRole());
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of("error", "This email is already in use for this role."));
+            }
             // Check if user exists in Firebase Auth with original email
             UserRecord existingUser = null;
             String firebaseEmail = request.getEmail();
-            
             try {
                 existingUser = FirebaseAuth.getInstance().getUserByEmail(request.getEmail());
                 // If user exists, check if they have the same role in Firestore
@@ -102,7 +104,6 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                 // If user exists but with different role, we need to use modified email for Firebase
                 firebaseEmail = request.getEmail().replace("@", "+" + request.getRole() + "@");
                 System.out.println("[signup] Email exists but with different role, using modified email: " + firebaseEmail);
-                
                 // Check if the modified email already exists in Firebase
                 try {
                     FirebaseAuth.getInstance().getUserByEmail(firebaseEmail);
@@ -117,7 +118,7 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                         throw e2;
                     }
                 }
-    } catch (FirebaseAuthException e) {
+            } catch (FirebaseAuthException e) {
                 if (!e.getErrorCode().toString().equals("USER_NOT_FOUND") && !e.getErrorCode().toString().equals("NOT_FOUND")) {
                     System.out.println("[signup] Firebase error: " + e.getErrorCode().toString());
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
@@ -125,27 +126,23 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
                 // User doesn't exist, we can use original email
                 System.out.println("[signup] User doesn't exist, using original email: " + request.getEmail());
             }
-            
-            // Create new Firebase user with appropriate email
-                    UserRecord userRecord = FirebaseAuth.getInstance().createUser(
-                            new UserRecord.CreateRequest()
-                            .setEmail(firebaseEmail)
-                                    .setPassword(request.getPassword())
-                                    .setDisplayName(request.getFullName())
-                                    .setPhoneNumber(request.getPhoneNumber())
-                                    );
-            
-                    mailService.sendSignupMail(request.getEmail(), request.getFullName());
-                    AppUser user = new AppUser(
-                            userRecord.getUid(),
-                            request.getEmail(),
-                            request.getFullName(),
-                            request.getPhoneNumber(),
-                            request.getRole()
-                    );
-                    userService.addUserInfo(user);
-                    System.out.println("[signup] Signup successful for: " + request.getEmail() + ", UID: " + userRecord.getUid() + ", Role: " + request.getRole());
-            
+            // Create new Firebase user with appropriate email (no phone number in Auth)
+            UserRecord userRecord = FirebaseAuth.getInstance().createUser(
+                new UserRecord.CreateRequest()
+                    .setEmail(firebaseEmail)
+                    .setPassword(request.getPassword())
+                    .setDisplayName(request.getFullName())
+            );
+            mailService.sendSignupMail(request.getEmail(), request.getFullName());
+            AppUser user = new AppUser(
+                userRecord.getUid(),
+                request.getEmail(),
+                request.getFullName(),
+                request.getPhoneNumber(), // still store in Firestore
+                request.getRole()
+            );
+            userService.addUserInfo(user);
+            System.out.println("[signup] Signup successful for: " + request.getEmail() + ", UID: " + userRecord.getUid() + ", Role: " + request.getRole());
             // After creating the user, sign in to get tokens using the email we used for Firebase
             String signInUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseApiKey;
             HttpHeaders signInHeaders = new HttpHeaders();
@@ -161,187 +158,165 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
             String idToken = signInJson.has("idToken") ? signInJson.get("idToken").asText() : null;
             String refreshToken = signInJson.has("refreshToken") ? signInJson.get("refreshToken").asText() : null;
             String expiresIn = signInJson.has("expiresIn") ? signInJson.get("expiresIn").asText() : null;
-            
-                    // Fetch and return full profile
-                    AppUser savedUser = userService.getUserInfo(userRecord.getUid());
-            // Return the expected format for frontend compatibility
-                    var resp = new java.util.LinkedHashMap<String, Object>();
+            // Fetch and return full profile
+            AppUser savedUser = userService.getUserInfo(userRecord.getUid());
+            var resp = new java.util.LinkedHashMap<String, Object>();
             resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
             resp.put("localId", savedUser.getUid());
             resp.put("email", savedUser.getEmail());
             resp.put("displayName", savedUser.getFullName());
-            resp.put("idToken", idToken); // Use real token
+            resp.put("idToken", idToken);
             resp.put("registered", true);
-            resp.put("refreshToken", refreshToken); // Use real refresh token
-            resp.put("expiresIn", expiresIn); // Use real expiresIn
-            // Add additional fields for your app
-                    resp.put("uid", savedUser.getUid());
-                    resp.put("fullName", savedUser.getFullName());
-                    resp.put("phoneNumber", savedUser.getPhoneNumber());
-                    resp.put("role", savedUser.getRole());
-                    String photoURL = "client".equals(savedUser.getRole()) ? savedUser.getClientImageUrl() : savedUser.getTalentImageUrl();
-                    String location = "client".equals(savedUser.getRole()) ? savedUser.getClientLocation() : savedUser.getTalentLocation();
-                    resp.put("photoURL", photoURL);
-                    resp.put("location", location);
-                    if ("talent".equals(savedUser.getRole())) {
-                        resp.put("talentCategory", savedUser.getTalentCategory());
-                        resp.put("talentDescription", savedUser.getTalentDescription());
-                        resp.put("experience", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getExperience() : null);
-                        resp.put("pricing", savedUser.getPricing());
-                        resp.put("availability", savedUser.getAvailability());
-                        resp.put("services", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getServices() : null);
-                    }
-                    String json = objectMapper.writeValueAsString(resp);
-                    System.out.println("[signup] Response: " + json);
-                    return ResponseEntity.ok(json);
+            resp.put("refreshToken", refreshToken);
+            resp.put("expiresIn", expiresIn);
+            resp.put("uid", savedUser.getUid());
+            resp.put("fullName", savedUser.getFullName());
+            resp.put("phoneNumber", savedUser.getPhoneNumber());
+            resp.put("role", savedUser.getRole());
+            String photoURL = "client".equals(savedUser.getRole()) ? savedUser.getClientImageUrl() : savedUser.getTalentImageUrl();
+            String location = "client".equals(savedUser.getRole()) ? savedUser.getClientLocation() : savedUser.getTalentLocation();
+            resp.put("photoURL", photoURL);
+            resp.put("location", location);
+            if ("talent".equals(savedUser.getRole())) {
+                resp.put("talentCategory", savedUser.getTalentCategory());
+                resp.put("talentDescription", savedUser.getTalentDescription());
+                resp.put("experience", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getExperience() : null);
+                resp.put("pricing", savedUser.getPricing());
+                resp.put("availability", savedUser.getAvailability());
+                resp.put("services", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getServices() : null);
+            }
+            String json = objectMapper.writeValueAsString(resp);
+            System.out.println("[signup] Response: " + json);
+            return ResponseEntity.ok(json);
         } catch (FirebaseAuthException e) {
             System.out.println("[signup] FirebaseAuthException: " + e.getErrorCode().toString());
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
         } catch (InterruptedException | ExecutionException e) {
             System.out.println("[signup] Exception: " + e.toString());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Unknown error, please try again"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Unknown error, please try again"));
         } catch (Exception e) {
             System.out.println("[signup] Unexpected Exception: " + e.toString());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", e.getMessage()));
+        }
     }
-}
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         System.out.println("[login] Payload: " + request.toString());
-        
-        // First, try to find user by original email in Firestore
-        AppUser user = null;
-        String firebaseEmail = request.getEmail();
-        
-        // Try to find user with the correct role
-        user = null;
-        firebaseEmail = request.getEmail();
-        
-        // First try with original email
         try {
-            UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(request.getEmail());
-            AppUser foundUser = userService.getUserInfo(userRecord.getUid());
-            
-            if (foundUser != null && request.getRole().equals(foundUser.getRole())) {
-                // Perfect match - user exists with original email and correct role
-                user = foundUser;
-                firebaseEmail = request.getEmail();
-                System.out.println("[login] Found user with original email and correct role: " + request.getEmail() + ", role: " + user.getRole());
-            } else if (foundUser != null && !request.getRole().equals(foundUser.getRole())) {
-                // User exists with original email but wrong role - try modified email
-                System.out.println("[login] User found with original email but wrong role: " + request.getEmail() + ", found role: " + foundUser.getRole() + ", requested role: " + request.getRole());
-                String modifiedEmail = request.getEmail().replace("@", "+" + request.getRole() + "@");
-                try {
-                    UserRecord userRecord2 = FirebaseAuth.getInstance().getUserByEmail(modifiedEmail);
-                    AppUser talentUser = userService.getUserInfo(userRecord2.getUid());
-                    if (talentUser != null && request.getRole().equals(talentUser.getRole())) {
-                        user = talentUser;
-                        firebaseEmail = modifiedEmail;
-                        System.out.println("[login] Found user with modified email: " + modifiedEmail + ", role: " + user.getRole());
-                    } else {
-                        System.out.println("[login] User not found with modified email or wrong role: " + modifiedEmail);
-                        return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid email or password"));
+            // Always fetch fresh from Firebase Auth
+            UserRecord userRecord = null;
+            try {
+                userRecord = FirebaseAuth.getInstance().getUserByEmail(request.getEmail());
+                System.out.println("[login] Firebase Auth user found: UID=" + userRecord.getUid() + ", email=" + userRecord.getEmail());
+                // Check if the user has password provider
+                boolean hasPasswordProvider = false;
+                for (com.google.firebase.auth.UserInfo userInfo : userRecord.getProviderData()) {
+                    if ("password".equals(userInfo.getProviderId())) {
+                        hasPasswordProvider = true;
+                        break;
                     }
-                } catch (FirebaseAuthException e2) {
-                    System.out.println("[login] User not found with modified email: " + modifiedEmail);
-                    return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid email or password"));
-                } catch (InterruptedException | ExecutionException e3) {
-                    System.out.println("[login] Exception: " + e3.toString());
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Unknown error, please try again"));
+                }
+                if (!hasPasswordProvider) {
+                    System.out.println("[login] User exists but does not have password provider: " + request.getEmail());
+                    return ResponseEntity.status(403).body(java.util.Map.of("error", "This email is registered with a different provider. Please use the original sign-in method."));
+                }
+            } catch (FirebaseAuthException e) {
+                if (e.getErrorCode().toString().equals("USER_NOT_FOUND") || e.getErrorCode().toString().equals("NOT_FOUND")) {
+                    System.out.println("[login] User not found in Firebase Auth: " + request.getEmail());
+                    // Try to find any Firestore user with this email for debug
+                    try {
+                        boolean exists = userService.userExistsByEmailAndRole(request.getEmail(), request.getRole());
+                        System.out.println("[login] Firestore userExistsByEmailAndRole: " + exists);
+                    } catch (Exception ex) {
+                        System.out.println("[login] Firestore check failed: " + ex.getMessage());
+                    }
+                    return ResponseEntity.status(404).body(java.util.Map.of("error", "User not found in Firebase Auth"));
+                } else {
+                    System.out.println("[login] FirebaseAuthException: " + e.getMessage());
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
                 }
             }
-        } catch (FirebaseAuthException e) {
-            if (e.getErrorCode().toString().equals("USER_NOT_FOUND") || e.getErrorCode().toString().equals("NOT_FOUND")) {
-                // Original email not found - try with modified email for the requested role
-                String modifiedEmail = request.getEmail().replace("@", "+" + request.getRole() + "@");
-                try {
-                    UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(modifiedEmail);
-                    AppUser foundUser = userService.getUserInfo(userRecord.getUid());
-                    if (foundUser != null && request.getRole().equals(foundUser.getRole())) {
-                        user = foundUser;
-                        firebaseEmail = modifiedEmail;
-                        System.out.println("[login] Found user with modified email: " + modifiedEmail + ", role: " + user.getRole());
-                    } else {
-                        System.out.println("[login] User not found with modified email or wrong role: " + modifiedEmail);
-                        return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid email or password"));
-                    }
-                } catch (FirebaseAuthException e2) {
-                    System.out.println("[login] User not found with original or modified email: " + request.getEmail());
-                    return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid email or password"));
-                } catch (InterruptedException | ExecutionException e3) {
-                    System.out.println("[login] Exception: " + e3.toString());
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Unknown error, please try again"));
+            String uid = userRecord.getUid();
+            // Always fetch fresh from Firestore
+            AppUser user = null;
+            try {
+                user = userService.getUserInfo(uid);
+                if (user != null) {
+                    System.out.println("[login] Firestore user found: UID=" + user.getUid() + ", email=" + user.getEmail() + ", role=" + user.getRole());
+                } else {
+                    System.out.println("[login] No user profile found in Firestore for UID: " + uid);
                 }
-            } else {
-                System.out.println("[login] FirebaseAuthException: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
+            } catch (Exception ex) {
+                System.out.println("[login] Firestore fetch failed: " + ex.getMessage());
             }
-        } catch (InterruptedException | ExecutionException e) {
+            if (user == null) {
+                return ResponseEntity.status(404).body(java.util.Map.of("error", "User profile not found in Firestore"));
+            }
+            // Check role
+            if (!request.getRole().equals(user.getRole())) {
+                System.out.println("[login] Role mismatch: requested=" + request.getRole() + ", actual=" + user.getRole());
+                return ResponseEntity.status(403).body(java.util.Map.of("error", "Role mismatch"));
+            }
+            // Authenticate with Firebase REST API using the provided email and password
+            String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseApiKey;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            String requestBody = String.format(
+                    "{\"email\":\"%s\", \"password\":\"%s\", \"returnSecureToken\":true}",
+                    request.getEmail(), request.getPassword()
+            );
+            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+            RestTemplate restTemplate = new RestTemplate();
+            try {
+                ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+                System.out.println("[login] Success for: " + request.getEmail() + ", Response: " + response.getBody());
+                // Parse Firebase REST API response for tokens
+                com.fasterxml.jackson.databind.JsonNode firebaseJson = objectMapper.readTree(response.getBody());
+                String idToken = firebaseJson.has("idToken") ? firebaseJson.get("idToken").asText() : null;
+                String refreshToken = firebaseJson.has("refreshToken") ? firebaseJson.get("refreshToken").asText() : null;
+                String expiresIn = firebaseJson.has("expiresIn") ? firebaseJson.get("expiresIn").asText() : null;
+                // Return the expected format for frontend compatibility
+                var resp = new java.util.LinkedHashMap<String, Object>();
+                resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
+                resp.put("localId", user.getUid());
+                resp.put("email", user.getEmail());
+                resp.put("displayName", user.getFullName());
+                resp.put("idToken", idToken);
+                resp.put("registered", true);
+                resp.put("refreshToken", refreshToken);
+                resp.put("expiresIn", expiresIn);
+                resp.put("uid", user.getUid());
+                resp.put("fullName", user.getFullName());
+                resp.put("phoneNumber", user.getPhoneNumber());
+                resp.put("role", user.getRole());
+                String photoURL = "client".equals(user.getRole()) ? user.getClientImageUrl() : user.getTalentImageUrl();
+                String location = "client".equals(user.getRole()) ? user.getClientLocation() : user.getTalentLocation();
+                resp.put("photoURL", photoURL);
+                resp.put("location", location);
+                if ("talent".equals(user.getRole())) {
+                    resp.put("talentCategory", user.getTalentCategory());
+                    resp.put("talentDescription", user.getTalentDescription());
+                    resp.put("experience", (user instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)user).getExperience() : null);
+                    resp.put("pricing", user.getPricing());
+                    resp.put("availability", user.getAvailability());
+                    resp.put("services", (user instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)user).getServices() : null);
+                }
+                String json = objectMapper.writeValueAsString(resp);
+                System.out.println("[login] Response: " + json);
+                return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
+            } catch (HttpClientErrorException e) {
+                System.out.println("[login] Failed for: " + request.getEmail() + ", Error: " + e.getResponseBodyAsString());
+                // On login failure, print what exists in both Auth and Firestore
+                System.out.println("[login] DEBUG: Auth UID=" + uid + ", Firestore user=" + (user != null ? user.toString() : "null"));
+                return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+            } catch (Exception e) {
+                System.out.println("[login] Unexpected Exception: " + e.getMessage());
+                return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
+            }
+        } catch (Exception e) {
             System.out.println("[login] Exception: " + e.toString());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("error", "Unknown error, please try again"));
-        }
-        
-        if (user == null) {
-            System.out.println("[login] No user profile found for email: " + request.getEmail());
-            return ResponseEntity.status(404).body(java.util.Map.of("error", "User profile not found"));
-        }
-        
-        // Now try to authenticate with Firebase using the correct email
-        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseApiKey;
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        String requestBody = String.format(
-                "{\"email\":\"%s\", \"password\":\"%s\", \"returnSecureToken\":true}",
-                firebaseEmail, request.getPassword()
-        );
-        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-        RestTemplate restTemplate = new RestTemplate();
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
-            System.out.println("[login] Success for: " + request.getEmail() + ", Response: " + response.getBody());
-            // Parse Firebase REST API response for tokens
-            com.fasterxml.jackson.databind.JsonNode firebaseJson = objectMapper.readTree(response.getBody());
-            String idToken = firebaseJson.has("idToken") ? firebaseJson.get("idToken").asText() : null;
-            String refreshToken = firebaseJson.has("refreshToken") ? firebaseJson.get("refreshToken").asText() : null;
-            String expiresIn = firebaseJson.has("expiresIn") ? firebaseJson.get("expiresIn").asText() : null;
-            
-            // Return the expected format for frontend compatibility
-            var resp = new java.util.LinkedHashMap<String, Object>();
-            resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
-            resp.put("localId", user.getUid());
-            resp.put("email", user.getEmail()); // Always return original email
-            resp.put("displayName", user.getFullName());
-            resp.put("idToken", idToken); // Use real token
-            resp.put("registered", true);
-            resp.put("refreshToken", refreshToken); // Use real refresh token
-            resp.put("expiresIn", expiresIn); // Use real expiresIn
-            // Add additional fields for your app
-            resp.put("uid", user.getUid());
-            resp.put("fullName", user.getFullName());
-            resp.put("phoneNumber", user.getPhoneNumber());
-            resp.put("role", user.getRole());
-            String photoURL = "client".equals(user.getRole()) ? user.getClientImageUrl() : user.getTalentImageUrl();
-            String location = "client".equals(user.getRole()) ? user.getClientLocation() : user.getTalentLocation();
-            resp.put("photoURL", photoURL);
-            resp.put("location", location);
-            if ("talent".equals(user.getRole())) {
-                resp.put("talentCategory", user.getTalentCategory());
-                resp.put("talentDescription", user.getTalentDescription());
-                resp.put("experience", (user instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)user).getExperience() : null);
-                resp.put("pricing", user.getPricing());
-                resp.put("availability", user.getAvailability());
-                resp.put("services", (user instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)user).getServices() : null);
-            }
-            String json = objectMapper.writeValueAsString(resp);
-            System.out.println("[login] Response: " + json);
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(json);
-        } catch (HttpClientErrorException e) {
-            System.out.println("[login] Failed for: " + request.getEmail() + ", Error: " + e.getResponseBodyAsString());
-            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
-        } catch (Exception e) {
-            System.out.println("[login] Unexpected Exception: " + e.getMessage());
-            return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
         }
     }
 
@@ -350,149 +325,116 @@ public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
         System.out.println("[google-login] Payload: " + request.toString());
         String idTokenString = request.getToken();
         String role = request.getRole();
-        
         try {
-            // Verify Google ID token directly (no Firebase verification first)
+            // 1. Verify Google ID token (no Auth calls yet)
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
-                        .setAudience(java.util.Collections.singletonList(googleMobileClientId))
-                        .build();
-                GoogleIdToken idToken = verifier.verify(idTokenString);
-            
-                if (idToken != null) {
-                    GoogleIdToken.Payload payload = idToken.getPayload();
-                    String email = payload.getEmail();
-                    String name = (String) payload.get("name");
-                
-                System.out.println("[google-login] Email: " + email + ", Role: " + role + ", Name from token: " + name);
-                
-                // Check if user exists in Firebase with original email
-                    UserRecord userRecord = null;
-                String firebaseUid = null;
-                String firebaseEmail = email;
-                
-                    try {
-                        userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
-                    firebaseUid = userRecord.getUid();
-                    
-                    // Check if user exists in Firestore with same role
-                    AppUser existingAppUser = userService.getUserInfo(firebaseUid);
-                    if (existingAppUser != null && existingAppUser.getRole().equals(role)) {
-                        System.out.println("[google-login] User already exists with same role: " + email + ", Role: " + role);
-                        // User exists with same role, proceed with login
-                    } else if (existingAppUser != null && !existingAppUser.getRole().equals(role)) {
-                        // User exists but with different role, we need to create or use a Firebase user with modified email
-                        System.out.println("[google-login] User exists with different role, creating or using Firebase user with modified email");
-                        firebaseEmail = email.replace("@", "+" + role + "@");
-                        try {
-                            userRecord = FirebaseAuth.getInstance().getUserByEmail(firebaseEmail);
-                            firebaseUid = userRecord.getUid();
-                            System.out.println("[google-login] Modified email already exists, logging in: " + firebaseEmail);
-                            // Continue to fetch user info and return login response
-                        } catch (FirebaseAuthException e2) {
-                            if (e2.getErrorCode().toString().equals("USER_NOT_FOUND") || e2.getErrorCode().toString().equals("NOT_FOUND")) {
-                                // Modified email doesn't exist, we can proceed to create
-                                System.out.println("[google-login] Modified email available: " + firebaseEmail);
-                                UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                                    .setEmail(firebaseEmail)
-                                    .setDisplayName(name);
-                                userRecord = FirebaseAuth.getInstance().createUser(createRequest);
-                                firebaseUid = userRecord.getUid();
-                                System.out.println("[google-login] Created new Firebase user with modified email: " + firebaseUid);
-                        } else {
-                                throw e2;
-                            }
-                        }
-                    }
-                } catch (FirebaseAuthException e) {
-                    if (e.getErrorCode().toString().equals("USER_NOT_FOUND") || e.getErrorCode().toString().equals("NOT_FOUND")) {
-                        // Create new Firebase user with original email
-                        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                            .setEmail(email)
-                            .setDisplayName(name);
-                        userRecord = FirebaseAuth.getInstance().createUser(createRequest);
-                        firebaseUid = userRecord.getUid();
-                        System.out.println("[google-login] Created new Firebase user: " + firebaseUid);
-                    } else {
-                        throw e;
-                    }
-                }
-                
-                // Check if user exists in Firestore and create if needed
-                AppUser existingAppUser = userService.getUserInfo(firebaseUid);
-                if (existingAppUser == null) {
-                            mailService.sendSignupMail(email, name);
-                            AppUser user2 = new AppUser(
-                        firebaseUid,
-                        email, // Always store original email in Firestore
-                                name,
-                        "", // Empty phone number for Google login
-                                role
-                            );
-                            userService.addUserInfo(user2);
-                    System.out.println("[google-login] Created new user in Firestore: " + email + ", Role: " + role);
-                        } else {
-                    System.out.println("[google-login] User already exists in Firestore: " + email + ", Role: " + role);
-                    // Update user's name if it's null but we have a name from Google token
-                    if ((existingAppUser.getFullName() == null || existingAppUser.getFullName().isEmpty()) && name != null && !name.isEmpty()) {
-                        existingAppUser.setFullName(name);
-                        userService.updateUser(existingAppUser);
-                        System.out.println("[google-login] Updated user name from Google token: " + name);
-                    }
-                        }
-                
-                    // Fetch and return full profile
-                AppUser savedUser = userService.getUserInfo(firebaseUid);
-                
-                // Get Firebase tokens using the Google ID token
-                String googleSignInUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=" + firebaseApiKey;
-                HttpHeaders googleHeaders = new HttpHeaders();
-                googleHeaders.setContentType(MediaType.APPLICATION_JSON);
-                String googleRequestBody = String.format(
-                    "{\"postBody\":\"id_token=%s&providerId=google.com\",\"requestUri\":\"http://localhost\",\"returnIdpCredential\":true,\"returnSecureToken\":true}",
-                    idTokenString
-                );
-                HttpEntity<String> googleEntity = new HttpEntity<>(googleRequestBody, googleHeaders);
-                RestTemplate googleRestTemplate = new RestTemplate();
-                ResponseEntity<String> googleResponse = googleRestTemplate.postForEntity(googleSignInUrl, googleEntity, String.class);
-                com.fasterxml.jackson.databind.JsonNode googleJson = objectMapper.readTree(googleResponse.getBody());
-                String idToken2 = googleJson.has("idToken") ? googleJson.get("idToken").asText() : null;
-                String refreshToken2 = googleJson.has("refreshToken") ? googleJson.get("refreshToken").asText() : null;
-                String expiresIn2 = googleJson.has("expiresIn") ? googleJson.get("expiresIn").asText() : null;
-                
-                // Return the same format as login/signup
-                    var resp = new java.util.LinkedHashMap<String, Object>();
-                resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
-                resp.put("localId", savedUser.getUid());
-                resp.put("email", savedUser.getEmail()); // Always return original email
-                resp.put("displayName", name != null ? name : savedUser.getFullName());
-                resp.put("idToken", idToken2);
-                resp.put("registered", true);
-                resp.put("refreshToken", refreshToken2);
-                resp.put("expiresIn", expiresIn2);
-                    resp.put("uid", savedUser.getUid());
-                    resp.put("fullName", name != null ? name : savedUser.getFullName());
-                    resp.put("phoneNumber", savedUser.getPhoneNumber());
-                    resp.put("role", savedUser.getRole());
-                    String photoURL = "client".equals(savedUser.getRole()) ? savedUser.getClientImageUrl() : savedUser.getTalentImageUrl();
-                    String location = "client".equals(savedUser.getRole()) ? savedUser.getClientLocation() : savedUser.getTalentLocation();
-                    resp.put("photoURL", photoURL);
-                    resp.put("location", location);
-                    if ("talent".equals(savedUser.getRole())) {
-                        resp.put("talentCategory", savedUser.getTalentCategory());
-                        resp.put("talentDescription", savedUser.getTalentDescription());
-                        resp.put("experience", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getExperience() : null);
-                        resp.put("pricing", savedUser.getPricing());
-                        resp.put("availability", savedUser.getAvailability());
-                        resp.put("services", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getServices() : null);
-                    }
-                
-                    String json = objectMapper.writeValueAsString(resp);
-                    System.out.println("[google-login] Response: " + json);
-                    return ResponseEntity.ok(json);
-                } else {
-                    System.out.println("[google-login] Invalid Google token");
+                .setAudience(java.util.Collections.singletonList(googleMobileClientId))
+                .build();
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken == null) {
+                System.out.println("[google-login] Invalid Google token");
                 return ResponseEntity.status(401).body("Invalid Google token");
             }
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            // 2. Check if user exists in Auth and verify provider
+            try {
+                UserRecord userRecord = FirebaseAuth.getInstance().getUserByEmail(email);
+                System.out.println("[google-login] Firebase Auth user found: UID=" + userRecord.getUid() + ", email=" + email);
+                // Check if the user has Google provider
+                boolean hasGoogleProvider = false;
+                for (com.google.firebase.auth.UserInfo userInfo : userRecord.getProviderData()) {
+                    if ("google.com".equals(userInfo.getProviderId())) {
+                        hasGoogleProvider = true;
+                        break;
+                    }
+                }
+                if (!hasGoogleProvider) {
+                    System.out.println("[google-login] User exists but does not have Google provider: " + email);
+                    return ResponseEntity.status(403).body(java.util.Map.of("error", "This email is registered with a different provider. Please use the original sign-in method."));
+                }
+            } catch (FirebaseAuthException e) {
+                if (e.getErrorCode().toString().equals("USER_NOT_FOUND") || e.getErrorCode().toString().equals("NOT_FOUND")) {
+                    System.out.println("[google-login] User not found in Firebase Auth: " + email);
+                    // User doesn't exist in Auth, so we can proceed to create
+                } else {
+                    System.out.println("[google-login] FirebaseAuthException: " + e.getMessage());
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("error", e.getMessage()));
+                }
+            }
+            // 3. ENFORCE EMAIL+ROLE UNIQUENESS and all business logic BEFORE any Auth call
+            if (userService.userExistsByEmailAndRole(email, role)) {
+                System.out.println("[google-login] Email already in use for this role (Firestore check): " + email + ", Role: " + role);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of("error", "This email is already in use for this role."));
+            }
+            // 4. Only now, after all checks, call signInWithIdp to get tokens and create/update Auth user
+            String googleSignInUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=" + firebaseApiKey;
+            HttpHeaders googleHeaders = new HttpHeaders();
+            googleHeaders.setContentType(MediaType.APPLICATION_JSON);
+            String googleRequestBody = String.format(
+                "{\"postBody\":\"id_token=%s&providerId=google.com\",\"requestUri\":\"http://localhost\",\"returnIdpCredential\":true,\"returnSecureToken\":true}",
+                idTokenString
+            );
+            HttpEntity<String> googleEntity = new HttpEntity<>(googleRequestBody, googleHeaders);
+            RestTemplate googleRestTemplate = new RestTemplate();
+            ResponseEntity<String> googleResponse = googleRestTemplate.postForEntity(googleSignInUrl, googleEntity, String.class);
+            com.fasterxml.jackson.databind.JsonNode googleJson = objectMapper.readTree(googleResponse.getBody());
+            String idToken2 = googleJson.has("idToken") ? googleJson.get("idToken").asText() : null;
+            String refreshToken2 = googleJson.has("refreshToken") ? googleJson.get("refreshToken").asText() : null;
+            String expiresIn2 = googleJson.has("expiresIn") ? googleJson.get("expiresIn").asText() : null;
+            String firebaseUid = googleJson.has("localId") ? googleJson.get("localId").asText() : null;
+            // 5. Now, check if user exists in Firestore and create if needed
+            AppUser existingAppUser = userService.getUserInfo(firebaseUid);
+            if (existingAppUser == null) {
+                mailService.sendSignupMail(email, name);
+                AppUser user2 = new AppUser(
+                    firebaseUid,
+                    email, // Always store original email in Firestore
+                    name,
+                    null, // No phone number for Google login
+                    role
+                );
+                userService.addUserInfo(user2);
+                System.out.println("[google-login] Created new user in Firestore: " + email + ", Role: " + role);
+            } else {
+                // Already exists, update name if needed
+                if ((existingAppUser.getFullName() == null || existingAppUser.getFullName().isEmpty()) && name != null && !name.isEmpty()) {
+                    existingAppUser.setFullName(name);
+                    userService.updateUser(existingAppUser);
+                    System.out.println("[google-login] Updated user name from Google token: " + name);
+                }
+            }
+            // Fetch and return full profile
+            AppUser savedUser = userService.getUserInfo(firebaseUid);
+            var resp = new java.util.LinkedHashMap<String, Object>();
+            resp.put("kind", "identitytoolkit#VerifyPasswordResponse");
+            resp.put("localId", savedUser.getUid());
+            resp.put("email", savedUser.getEmail());
+            resp.put("displayName", name != null ? name : savedUser.getFullName());
+            resp.put("idToken", idToken2);
+            resp.put("registered", true);
+            resp.put("refreshToken", refreshToken2);
+            resp.put("expiresIn", expiresIn2);
+            resp.put("uid", savedUser.getUid());
+            resp.put("fullName", name != null ? name : savedUser.getFullName());
+            resp.put("phoneNumber", savedUser.getPhoneNumber());
+            resp.put("role", savedUser.getRole());
+            String photoURL = "client".equals(savedUser.getRole()) ? savedUser.getClientImageUrl() : savedUser.getTalentImageUrl();
+            String location = "client".equals(savedUser.getRole()) ? savedUser.getClientLocation() : savedUser.getTalentLocation();
+            resp.put("photoURL", photoURL);
+            resp.put("location", location);
+            if ("talent".equals(savedUser.getRole())) {
+                resp.put("talentCategory", savedUser.getTalentCategory());
+                resp.put("talentDescription", savedUser.getTalentDescription());
+                resp.put("experience", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getExperience() : null);
+                resp.put("pricing", savedUser.getPricing());
+                resp.put("availability", savedUser.getAvailability());
+                resp.put("services", (savedUser instanceof com.kwiyeh.back.model.UserTalent) ? ((com.kwiyeh.back.model.UserTalent)savedUser).getServices() : null);
+            }
+            String json = objectMapper.writeValueAsString(resp);
+            System.out.println("[google-login] Response: " + json);
+            return ResponseEntity.ok(json);
         } catch (Exception e) {
             System.out.println("[google-login] Exception: " + e.getMessage());
             return ResponseEntity.status(500).body(java.util.Map.of("error", e.getMessage()));
